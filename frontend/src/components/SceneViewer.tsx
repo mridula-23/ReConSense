@@ -56,62 +56,62 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
     const points: Point3D[] = [];
 
     // 1. Room Floor (-Y)
-    for (let x = -3.5; x <= 3.5; x += 0.25) {
-      for (let z = -3.5; z <= 3.5; z += 0.25) {
-        const noise = (Math.random() - 0.5) * 0.04;
+    for (let x = -3.5; x <= 3.5; x += 0.22) {
+      for (let z = -3.5; z <= 3.5; z += 0.22) {
+        const noise = (Math.random() - 0.5) * 0.03;
         points.push({
           x: x + noise,
           y: -1.5,
           z: z + noise,
-          r: 50,
-          g: 75,
-          b: 110,
+          r: 45,
+          g: 70,
+          b: 105,
           type: 'observed',
         });
       }
     }
 
     // 2. North Wall (Z = -3.5)
-    for (let x = -3.5; x <= 3.5; x += 0.22) {
-      for (let y = -1.5; y <= 1.8; y += 0.22) {
+    for (let x = -3.5; x <= 3.5; x += 0.2) {
+      for (let y = -1.5; y <= 1.8; y += 0.2) {
         const isNorthWestHole = x < -2.2 && y < -0.2;
         points.push({
           x,
           y,
-          z: -3.5 + (Math.random() - 0.5) * 0.05,
-          r: isNorthWestHole ? 220 : 70,
-          g: isNorthWestHole ? 60 : 130,
-          b: isNorthWestHole ? 60 : 180,
+          z: -3.5 + (Math.random() - 0.5) * 0.04,
+          r: isNorthWestHole ? 220 : 65,
+          g: isNorthWestHole ? 55 : 125,
+          b: isNorthWestHole ? 55 : 175,
           type: isNorthWestHole ? 'unobserved' : 'observed',
         });
       }
     }
 
     // 3. East Wall (X = 3.5) & Shelves
-    for (let z = -3.5; z <= 3.5; z += 0.24) {
-      for (let y = -1.5; y <= 1.8; y += 0.24) {
+    for (let z = -3.5; z <= 3.5; z += 0.22) {
+      for (let y = -1.5; y <= 1.8; y += 0.22) {
         points.push({
-          x: 3.5 + (Math.random() - 0.5) * 0.05,
+          x: 3.5 + (Math.random() - 0.5) * 0.04,
           y,
           z,
-          r: 65,
-          g: 120,
-          b: 165,
+          r: 60,
+          g: 115,
+          b: 160,
           type: 'observed',
         });
       }
     }
 
     // 4. Lab Workbench / Table (Center-Left)
-    for (let x = -2.0; x <= -0.2; x += 0.15) {
-      for (let z = -1.5; z <= 0.8; z += 0.15) {
+    for (let x = -2.0; x <= -0.2; x += 0.14) {
+      for (let z = -1.5; z <= 0.8; z += 0.14) {
         points.push({
           x,
           y: -0.6 + (Math.random() - 0.5) * 0.02,
           z,
-          r: 30,
-          g: 175,
-          b: 200,
+          r: 25,
+          g: 165,
+          b: 195,
           type: 'observed',
         });
       }
@@ -151,12 +151,12 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
     }
 
     // 6. Inpainted Completed Region (North-West Void)
-    for (let x = -3.2; x <= -2.0; x += 0.18) {
-      for (let y = -1.4; y <= -0.1; y += 0.18) {
+    for (let x = -3.2; x <= -2.0; x += 0.16) {
+      for (let y = -1.4; y <= -0.1; y += 0.16) {
         points.push({
           x,
           y,
-          z: -3.3 + (Math.random() - 0.5) * 0.05,
+          z: -3.3 + (Math.random() - 0.5) * 0.04,
           r: 129,
           g: 140,
           b: 248,
@@ -177,24 +177,20 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
       width: number,
       height: number
     ): { x: number; y: number; z: number; visible: boolean } => {
-      // Apply pan
       const px = x + pan.x * 0.01;
       const py = y - pan.y * 0.01;
       const pz = z;
 
-      // Rotation around Y (Yaw)
       const cosY = Math.cos(rotation.yaw);
       const sinY = Math.sin(rotation.yaw);
       const x1 = px * cosY - pz * sinY;
       const z1 = px * sinY + pz * cosY;
 
-      // Rotation around X (Pitch)
       const cosP = Math.cos(rotation.pitch);
       const sinP = Math.sin(rotation.pitch);
       const y2 = py * cosP - z1 * sinP;
       const z2 = py * sinP + z1 * cosP;
 
-      // Camera distance offset
       const dist = 7.0 / zoom;
       const camZ = z2 + dist;
 
@@ -202,7 +198,7 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
         return { x: 0, y: 0, z: camZ, visible: false };
       }
 
-      const fov = 420;
+      const fov = 440;
       const projX = width / 2 + (x1 * fov) / camZ;
       const projY = height / 2 - (y2 * fov) / camZ;
 
@@ -224,35 +220,47 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
       const width = canvas.width;
       const height = canvas.height;
 
-      // Clear dark canvas background
-      ctx.fillStyle = '#06090e';
+      // Dark workspace background
+      ctx.fillStyle = '#05070c';
       ctx.fillRect(0, 0, width, height);
 
-      // Draw subtle background viewport grid
+      // Subtle Radial Vignette
+      const gradient = ctx.createRadialGradient(
+        width / 2,
+        height / 2,
+        width * 0.1,
+        width / 2,
+        height / 2,
+        width * 0.7
+      );
+      gradient.addColorStop(0, 'rgba(15, 23, 42, 0.4)');
+      gradient.addColorStop(1, 'rgba(5, 7, 12, 0.95)');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, width, height);
+
+      // Ground Wireframe Grid
       if (showGrid) {
         ctx.lineWidth = 1;
         const gridSize = 4.0;
         const step = 0.8;
 
         for (let i = -gridSize; i <= gridSize; i += step) {
-          // Lines along Z
           const p1 = project(i, -1.5, -gridSize, width, height);
           const p2 = project(i, -1.5, gridSize, width, height);
 
           if (p1.visible && p2.visible) {
-            ctx.strokeStyle = i === 0 ? 'rgba(56, 189, 248, 0.4)' : 'rgba(30, 47, 77, 0.4)';
+            ctx.strokeStyle = i === 0 ? 'rgba(56, 189, 248, 0.3)' : 'rgba(255, 255, 255, 0.04)';
             ctx.beginPath();
             ctx.moveTo(p1.x, p1.y);
             ctx.lineTo(p2.x, p2.y);
             ctx.stroke();
           }
 
-          // Lines along X
           const p3 = project(-gridSize, -1.5, i, width, height);
           const p4 = project(gridSize, -1.5, i, width, height);
 
           if (p3.visible && p4.visible) {
-            ctx.strokeStyle = i === 0 ? 'rgba(244, 63, 94, 0.4)' : 'rgba(30, 47, 77, 0.4)';
+            ctx.strokeStyle = i === 0 ? 'rgba(244, 63, 94, 0.3)' : 'rgba(255, 255, 255, 0.04)';
             ctx.beginPath();
             ctx.moveTo(p3.x, p3.y);
             ctx.lineTo(p4.x, p4.y);
@@ -261,7 +269,7 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
         }
       }
 
-      // Draw Camera Trajectory & Frustums
+      // Camera Trajectory & Keyframe nodes
       if (showTrajectory) {
         const trajectoryPoints = [
           { x: 2.2, y: 0.1, z: 2.5 },
@@ -276,8 +284,8 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
           { x: 2.0, y: 0.2, z: 0.5 },
         ];
 
-        ctx.strokeStyle = 'rgba(6, 182, 212, 0.75)';
-        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.6)';
+        ctx.lineWidth = 1.4;
         ctx.beginPath();
 
         let started = false;
@@ -294,35 +302,33 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
         });
         ctx.stroke();
 
-        // Keyframe camera nodes
+        // Keyframe nodes
         trajectoryPoints.forEach((pt, index) => {
           const pr = project(pt.x, pt.y, pt.z, width, height);
           if (pr.visible) {
-            ctx.fillStyle = index === trajectoryPoints.length - 1 ? '#38bdf8' : 'rgba(6, 182, 212, 0.9)';
+            ctx.fillStyle = index === trajectoryPoints.length - 1 ? '#38bdf8' : 'rgba(56, 189, 248, 0.85)';
             ctx.beginPath();
-            ctx.arc(pr.x, pr.y, index === trajectoryPoints.length - 1 ? 4.5 : 2.5, 0, Math.PI * 2);
+            ctx.arc(pr.x, pr.y, index === trajectoryPoints.length - 1 ? 4 : 2, 0, Math.PI * 2);
             ctx.fill();
 
-            // Highlight current active camera node with a pulse
             if (index === trajectoryPoints.length - 1) {
               ctx.strokeStyle = '#38bdf8';
-              ctx.lineWidth = 1.5;
+              ctx.lineWidth = 1.2;
               ctx.beginPath();
-              ctx.arc(pr.x, pr.y, 8, 0, Math.PI * 2);
+              ctx.arc(pr.x, pr.y, 7, 0, Math.PI * 2);
               ctx.stroke();
             }
           }
         });
       }
 
-      // Draw 3D Dynamic Object Bounding Boxes
+      // Dynamic 3D Bounding Boxes
       if (showBBoxes && (mode === 'dynamic_filter' || mode === 'point_cloud' || mode === 'dense_mesh')) {
         dynamicObjects.forEach((obj) => {
           const { x, y, z, w, h, d } = obj.boundingCoords;
           const halfW = w / 2;
           const halfD = d / 2;
 
-          // 8 corners of the 3D bounding box
           const corners = [
             { x: x - halfW, y: y, z: z - halfD },
             { x: x + halfW, y: y, z: z - halfD },
@@ -336,15 +342,14 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
 
           const projected = corners.map((c) => project(c.x, c.y, c.z, width, height));
 
-          // Draw wireframe box
-          ctx.strokeStyle = 'rgba(244, 63, 94, 0.85)';
-          ctx.lineWidth = 1.2;
+          ctx.strokeStyle = 'rgba(244, 63, 94, 0.8)';
+          ctx.lineWidth = 1.1;
           ctx.setLineDash([3, 3]);
 
           const edges = [
-            [0, 1], [1, 2], [2, 3], [3, 0], // bottom
-            [4, 5], [5, 6], [6, 7], [7, 4], // top
-            [0, 4], [1, 5], [2, 6], [3, 7], // pillars
+            [0, 1], [1, 2], [2, 3], [3, 0],
+            [4, 5], [5, 6], [6, 7], [7, 4],
+            [0, 4], [1, 5], [2, 6], [3, 7],
           ];
 
           edges.forEach(([i, j]) => {
@@ -357,11 +362,10 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
           });
           ctx.setLineDash([]);
 
-          // Object Label above bounding box
-          const topCenter = project(x, y + h + 0.2, z, width, height);
+          const topCenter = project(x, y + h + 0.15, z, width, height);
           if (topCenter.visible) {
-            ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
-            ctx.strokeStyle = 'rgba(244, 63, 94, 0.6)';
+            ctx.fillStyle = 'rgba(8, 11, 17, 0.9)';
+            ctx.strokeStyle = 'rgba(244, 63, 94, 0.4)';
             ctx.lineWidth = 1;
             const text = `${obj.label} (${(obj.confidence * 100).toFixed(0)}%)`;
             ctx.font = '10px "JetBrains Mono", monospace';
@@ -371,30 +375,28 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
               topCenter.x - metrics.width / 2 - pad,
               topCenter.y - 12,
               metrics.width + pad * 2,
-              16
+              15
             );
             ctx.strokeRect(
               topCenter.x - metrics.width / 2 - pad,
               topCenter.y - 12,
               metrics.width + pad * 2,
-              16
+              15
             );
             ctx.fillStyle = '#fb7185';
-            ctx.fillText(text, topCenter.x - metrics.width / 2, topCenter.y);
+            ctx.fillText(text, topCenter.x - metrics.width / 2, topCenter.y - 1);
           }
         });
       }
 
-      // Draw Point Cloud
+      // Render Point Cloud Vertices
       const pts = pointsRef.current;
       pts.forEach((p) => {
-        // Filter points according to selected mode
         if (mode === 'dynamic_filter' && p.type !== 'dynamic') {
-          // Dim static points in dynamic filter view
           const pr = project(p.x, p.y, p.z, width, height);
           if (pr.visible) {
-            ctx.fillStyle = 'rgba(50, 70, 95, 0.25)';
-            ctx.fillRect(pr.x, pr.y, 1.2, 1.2);
+            ctx.fillStyle = 'rgba(40, 55, 75, 0.2)';
+            ctx.fillRect(pr.x, pr.y, 1.1, 1.1);
           }
           return;
         }
@@ -402,13 +404,8 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
         if (mode === 'coverage_heatmap') {
           const pr = project(p.x, p.y, p.z, width, height);
           if (pr.visible) {
-            if (p.type === 'unobserved') {
-              ctx.fillStyle = '#ef4444'; // Bright red for blindspots
-              ctx.fillRect(pr.x, pr.y, 2.5, 2.5);
-            } else {
-              ctx.fillStyle = '#10b981'; // Green for observed
-              ctx.fillRect(pr.x, pr.y, 1.5, 1.5);
-            }
+            ctx.fillStyle = p.type === 'unobserved' ? '#ef4444' : '#10b981';
+            ctx.fillRect(pr.x, pr.y, p.type === 'unobserved' ? 2.2 : 1.4, p.type === 'unobserved' ? 2.2 : 1.4);
           }
           return;
         }
@@ -416,28 +413,22 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
         if (mode === 'ai_completed') {
           const pr = project(p.x, p.y, p.z, width, height);
           if (pr.visible) {
-            if (p.type === 'inpainted') {
-              ctx.fillStyle = '#a855f7'; // Purple for AI completed regions
-              ctx.fillRect(pr.x, pr.y, 2.2, 2.2);
-            } else {
-              ctx.fillStyle = `rgb(${p.r}, ${p.g}, ${p.b})`;
-              ctx.fillRect(pr.x, pr.y, 1.5, 1.5);
-            }
+            ctx.fillStyle = p.type === 'inpainted' ? '#a855f7' : `rgb(${p.r}, ${p.g}, ${p.b})`;
+            ctx.fillRect(pr.x, pr.y, p.type === 'inpainted' ? 2.0 : 1.4, p.type === 'inpainted' ? 2.0 : 1.4);
           }
           return;
         }
 
-        // Standard point cloud rendering
         const pr = project(p.x, p.y, p.z, width, height);
         if (pr.visible) {
           ctx.fillStyle = `rgb(${p.r}, ${p.g}, ${p.b})`;
-          ctx.fillRect(pr.x, pr.y, mode === 'dense_mesh' ? 2.0 : 1.4, mode === 'dense_mesh' ? 2.0 : 1.4);
+          ctx.fillRect(pr.x, pr.y, mode === 'dense_mesh' ? 1.8 : 1.3, mode === 'dense_mesh' ? 1.8 : 1.3);
         }
       });
 
-      // Axis Orientation Gizmo in bottom-left corner
-      const gizmoOrigin = { x: 50, y: height - 50 };
-      const gizmoLen = 28;
+      // Axis Orientation Gizmo in bottom-left
+      const gizmoOrigin = { x: 45, y: height - 45 };
+      const gizmoLen = 24;
 
       const cosY = Math.cos(rotation.yaw);
       const sinY = Math.sin(rotation.yaw);
@@ -450,13 +441,13 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
         y: gizmoOrigin.y - gizmoLen * sinY * sinP,
       };
       ctx.strokeStyle = '#f43f5e';
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 1.8;
       ctx.beginPath();
       ctx.moveTo(gizmoOrigin.x, gizmoOrigin.y);
       ctx.lineTo(gx.x, gx.y);
       ctx.stroke();
 
-      // Y Axis (Green - Up)
+      // Y Axis (Green)
       const gy = {
         x: gizmoOrigin.x,
         y: gizmoOrigin.y - gizmoLen * cosP,
@@ -467,7 +458,7 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
       ctx.lineTo(gy.x, gy.y);
       ctx.stroke();
 
-      // Z Axis (Blue - Forward)
+      // Z Axis (Blue)
       const gz = {
         x: gizmoOrigin.x - gizmoLen * sinY,
         y: gizmoOrigin.y - gizmoLen * cosY * sinP,
@@ -478,16 +469,15 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
       ctx.lineTo(gz.x, gz.y);
       ctx.stroke();
 
-      ctx.fillStyle = '#94a3b8';
+      ctx.fillStyle = '#64748b';
       ctx.font = '9px "JetBrains Mono", monospace';
-      ctx.fillText('X', gx.x + 3, gx.y);
-      ctx.fillText('Y', gy.x + 3, gy.y);
-      ctx.fillText('Z', gz.x + 3, gz.y);
+      ctx.fillText('X', gx.x + 3, gx.y + 3);
+      ctx.fillText('Y', gy.x + 3, gy.y + 3);
+      ctx.fillText('Z', gz.x + 3, gz.y + 3);
     };
 
     render();
 
-    // Auto update on canvas resize
     const handleResize = () => {
       if (canvas && containerRef.current) {
         canvas.width = containerRef.current.clientWidth;
@@ -513,7 +503,7 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
     };
   }, [mode, project, rotation, zoom, showGrid, showTrajectory, showBBoxes, dynamicObjects]);
 
-  // Mouse interaction for Orbit, Zoom, and Pan
+  // Mouse drag handlers
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
     setDragStart({ x: e.clientX, y: e.clientY });
@@ -525,16 +515,14 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
     const dy = e.clientY - dragStart.y;
 
     if (e.buttons === 1) {
-      // Orbit rotation
       setRotation((prev) => ({
-        yaw: prev.yaw + dx * 0.008,
-        pitch: Math.max(-1.4, Math.min(1.4, prev.pitch + dy * 0.008)),
+        yaw: prev.yaw + dx * 0.007,
+        pitch: Math.max(-1.4, Math.min(1.4, prev.pitch + dy * 0.007)),
       }));
     } else if (e.buttons === 2 || e.shiftKey) {
-      // Pan
       setPan((prev) => ({
-        x: prev.x + dx * 0.5,
-        y: prev.y + dy * 0.5,
+        x: prev.x + dx * 0.4,
+        y: prev.y + dy * 0.4,
       }));
     }
 
@@ -554,9 +542,9 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
   const modeButtons: { mode: ViewportMode; label: string; icon: React.ComponentType<{ size?: number }> }[] = [
     { mode: 'point_cloud', label: 'Sparse SfM', icon: Box },
     { mode: 'dense_mesh', label: 'Dense TSDF', icon: Layers },
-    { mode: 'coverage_heatmap', label: 'Coverage Heatmap', icon: PieChart },
-    { mode: 'dynamic_filter', label: 'Dynamic Filter', icon: UserX },
-    { mode: 'ai_completed', label: 'AI Inpainting', icon: Sparkles },
+    { mode: 'coverage_heatmap', label: 'Coverage', icon: PieChart },
+    { mode: 'dynamic_filter', label: 'Dynamic Mask', icon: UserX },
+    { mode: 'ai_completed', label: 'AI Completion', icon: Sparkles },
   ];
 
   return (
@@ -566,22 +554,22 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
         position: 'relative',
         width: '100%',
         height: '100%',
-        backgroundColor: '#06090e',
+        backgroundColor: '#05070c',
         borderRadius: 'var(--radius-md)',
         overflow: 'hidden',
-        border: '1px solid var(--border-default)',
+        border: '1px solid var(--border-subtle)',
         display: 'flex',
         flexDirection: 'column',
       }}
       onContextMenu={(e) => e.preventDefault()}
     >
-      {/* Top Floating Viewport Control Bar */}
+      {/* Top Floating Viewport Control Ribbon */}
       <div
         style={{
           position: 'absolute',
-          top: 10,
-          left: 10,
-          right: 10,
+          top: 12,
+          left: 14,
+          right: 14,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -591,15 +579,12 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
       >
         {/* Left: View Modes Switcher */}
         <div
+          className="hud-panel"
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '4px',
-            background: 'rgba(11, 16, 27, 0.85)',
-            backdropFilter: 'blur(8px)',
-            border: '1px solid var(--border-default)',
+            gap: '2px',
             padding: '3px',
-            borderRadius: 'var(--radius-sm)',
             pointerEvents: 'auto',
           }}
         >
@@ -614,12 +599,12 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
                   display: 'flex',
                   alignItems: 'center',
                   gap: '5px',
-                  padding: '5px 9px',
+                  padding: '5px 10px',
                   borderRadius: 'var(--radius-sm)',
-                  background: isActive ? 'var(--bg-surface-3)' : 'transparent',
-                  border: isActive ? '1px solid var(--accent-cyan)' : '1px solid transparent',
+                  background: isActive ? 'var(--bg-surface-active)' : 'transparent',
+                  border: isActive ? '1px solid rgba(56, 189, 248, 0.4)' : '1px solid transparent',
                   color: isActive ? '#38bdf8' : 'var(--text-secondary)',
-                  fontSize: '11px',
+                  fontSize: '11.5px',
                   fontWeight: 600,
                   fontFamily: 'var(--font-mono)',
                 }}
@@ -631,54 +616,66 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
           })}
         </div>
 
-        {/* Right: Layer Toggles & Viewport Tools */}
+        {/* Right: Layer Toggles & View Reset */}
         <div
+          className="hud-panel"
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
-            background: 'rgba(11, 16, 27, 0.85)',
-            backdropFilter: 'blur(8px)',
-            border: '1px solid var(--border-default)',
+            gap: '4px',
             padding: '3px 6px',
-            borderRadius: 'var(--radius-sm)',
             pointerEvents: 'auto',
           }}
         >
           <button
             onClick={() => setShowGrid(!showGrid)}
-            title="Toggle Ground Grid"
+            title="Toggle Grid"
             style={{
-              padding: '5px',
+              padding: '5px 7px',
               borderRadius: 'var(--radius-sm)',
               color: showGrid ? 'var(--accent-cyan)' : 'var(--text-muted)',
+              fontSize: '11px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
             }}
           >
-            <Grid size={15} />
+            <Grid size={14} />
+            <span style={{ fontSize: '10.5px' }}>Grid</span>
           </button>
 
           <button
             onClick={() => setShowTrajectory(!showTrajectory)}
-            title="Toggle Camera Trajectory"
+            title="Toggle Trajectory"
             style={{
-              padding: '5px',
+              padding: '5px 7px',
               borderRadius: 'var(--radius-sm)',
               color: showTrajectory ? 'var(--accent-cyan)' : 'var(--text-muted)',
+              fontSize: '11px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
             }}
           >
-            <Camera size={15} />
+            <Camera size={14} />
+            <span style={{ fontSize: '10.5px' }}>Cameras</span>
           </button>
 
           <button
             onClick={() => setShowBBoxes(!showBBoxes)}
-            title="Toggle Dynamic 3D Bounding Boxes"
+            title="Toggle 3D Bounding Boxes"
             style={{
-              padding: '5px',
+              padding: '5px 7px',
               borderRadius: 'var(--radius-sm)',
               color: showBBoxes ? 'var(--accent-rose)' : 'var(--text-muted)',
+              fontSize: '11px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
             }}
           >
-            <UserX size={15} />
+            <UserX size={14} />
+            <span style={{ fontSize: '10.5px' }}>Masks</span>
           </button>
 
           <div style={{ height: '14px', width: '1px', backgroundColor: 'var(--border-subtle)' }} />
@@ -687,17 +684,21 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
             onClick={resetView}
             title="Reset Camera View"
             style={{
-              padding: '5px',
+              padding: '5px 7px',
               borderRadius: 'var(--radius-sm)',
               color: 'var(--text-secondary)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
             }}
           >
-            <RotateCcw size={15} />
+            <RotateCcw size={13} />
+            <span style={{ fontSize: '10.5px' }}>Reset</span>
           </button>
         </div>
       </div>
 
-      {/* Main Interactive WebGL Simulation Canvas */}
+      {/* Main Interactive Canvas */}
       <canvas
         ref={canvasRef}
         width={1000}
@@ -718,9 +719,9 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
       <div
         style={{
           position: 'absolute',
-          bottom: 10,
-          left: 10,
-          right: 10,
+          bottom: 12,
+          left: 14,
+          right: 14,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -729,18 +730,14 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
       >
         {/* Coordinates HUD */}
         <div
-          className="font-mono"
+          className="hud-panel font-mono"
           style={{
-            background: 'rgba(11, 16, 27, 0.85)',
-            backdropFilter: 'blur(8px)',
-            border: '1px solid var(--border-subtle)',
-            padding: '4px 10px',
-            borderRadius: 'var(--radius-sm)',
+            padding: '4px 12px',
             fontSize: '10.5px',
             color: 'var(--text-secondary)',
             display: 'flex',
             alignItems: 'center',
-            gap: '12px',
+            gap: '14px',
           }}
         >
           <div>
@@ -757,30 +754,26 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
           </div>
         </div>
 
-        {/* Render Stats HUD */}
+        {/* Viewport Telemetry HUD */}
         <div
-          className="font-mono"
+          className="hud-panel font-mono"
           style={{
-            background: 'rgba(11, 16, 27, 0.85)',
-            backdropFilter: 'blur(8px)',
-            border: '1px solid var(--border-subtle)',
-            padding: '4px 10px',
-            borderRadius: 'var(--radius-sm)',
+            padding: '4px 12px',
             fontSize: '10.5px',
             color: 'var(--text-secondary)',
             display: 'flex',
             alignItems: 'center',
-            gap: '12px',
+            gap: '14px',
           }}
         >
           <div>
-            <span style={{ color: 'var(--text-muted)' }}>POINTS:</span>{' '}
+            <span style={{ color: 'var(--text-muted)' }}>VERTICES:</span>{' '}
             <span style={{ color: 'var(--accent-cyan)', fontWeight: 600 }}>
               {mode === 'dense_mesh' ? '1,482,000' : '164,280'}
             </span>
           </div>
           <div>
-            <span style={{ color: 'var(--text-muted)' }}>CAMERAS:</span>{' '}
+            <span style={{ color: 'var(--text-muted)' }}>KEYFRAMES:</span>{' '}
             <span style={{ color: 'var(--text-primary)' }}>412</span>
           </div>
           <div>

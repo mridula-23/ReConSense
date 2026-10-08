@@ -1,13 +1,7 @@
 import React, { useState } from 'react';
 import { DashboardLayout } from '../layouts/DashboardLayout';
 import { SceneViewer } from '../components/SceneViewer';
-import { ConnectionStatus } from '../components/ConnectionStatus';
-import { SessionPanel } from '../components/SessionPanel';
-import { ReconstructionStatus } from '../components/ReconstructionStatus';
-import { CoveragePanel } from '../components/CoveragePanel';
-import { DynamicObjectsPanel } from '../components/DynamicObjectsPanel';
-import { CameraGuidance } from '../components/CameraGuidance';
-import { MetricCard } from '../components/MetricCard';
+import { InspectorPanel } from '../components/InspectorPanel';
 import {
   mockDeviceConnection,
   mockSessionInfo,
@@ -18,29 +12,29 @@ import {
   mockGuidanceCues,
 } from '../mock/mockData';
 import type { ViewportMode, DynamicObject } from '../types/dashboard';
-import { Layers, ShieldAlert, Sparkles, Box, CheckCircle2 } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 
 export const Dashboard: React.FC = () => {
   const [viewportMode, setViewportMode] = useState<ViewportMode>('point_cloud');
-  const [activeSection, setActiveSection] = useState<string>('overview');
-  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
+  const [activeSection, setActiveSection] = useState<string>('point_cloud');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(true);
   const [isStreaming, setIsStreaming] = useState<boolean>(true);
   const [selectedObjectId, setSelectedObjectId] = useState<string | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
 
   const showNotification = (msg: string) => {
     setNotification(msg);
-    setTimeout(() => setNotification(null), 3000);
+    setTimeout(() => setNotification(null), 2600);
   };
 
   const handleToggleStream = () => {
     setIsStreaming(!isStreaming);
-    showNotification(isStreaming ? 'WebRTC stream paused' : 'WebRTC stream active (1080p60)');
+    showNotification(isStreaming ? 'WebRTC ingest stream paused' : 'WebRTC stream active (1080p60)');
   };
 
   const handleRunSparseSfM = () => {
     setViewportMode('point_cloud');
-    showNotification('Executed incremental Bundle Adjustment (412 cameras)');
+    showNotification('Executed incremental Bundle Adjustment (412 cameras registered)');
   };
 
   const handleRunDenseFusion = () => {
@@ -50,17 +44,17 @@ export const Dashboard: React.FC = () => {
 
   const handleRunAIInpainting = () => {
     setViewportMode('ai_completed');
-    showNotification('AI Generative Prior applied to unobserved voids');
+    showNotification('Observation-Aware Diffusion Prior applied to blindspots');
   };
 
   const handleExportModel = (format: 'ply' | 'glb' | 'obj') => {
-    showNotification(`Exporting 3D scene representation as .${format.toUpperCase()}`);
+    showNotification(`Exported scene model as .${format.toUpperCase()}`);
   };
 
   const handleSelectObject = (obj: DynamicObject) => {
     setSelectedObjectId(obj.id === selectedObjectId ? null : obj.id);
     setViewportMode('dynamic_filter');
-    showNotification(`Focusing dynamic entity: ${obj.label}`);
+    showNotification(`Selected dynamic mask: ${obj.label}`);
   };
 
   return (
@@ -70,7 +64,6 @@ export const Dashboard: React.FC = () => {
       deviceConnection={mockDeviceConnection}
       isStreaming={isStreaming}
       onToggleStream={handleToggleStream}
-      onRefreshTelemetry={() => showNotification('Hardware & perception telemetry refreshed')}
       activeMode={viewportMode}
       onSelectMode={setViewportMode}
       activeSection={activeSection}
@@ -81,119 +74,69 @@ export const Dashboard: React.FC = () => {
       onRunDenseFusion={handleRunDenseFusion}
       onRunAIInpainting={handleRunAIInpainting}
       onExportModel={handleExportModel}
+      guidanceCue={mockGuidanceCues[0]}
     >
       {/* Toast Notification */}
       {notification && (
         <div
+          className="hud-panel font-mono"
           style={{
             position: 'fixed',
-            bottom: '58px',
-            right: '20px',
-            background: 'rgba(15, 23, 42, 0.95)',
-            border: '1px solid var(--accent-cyan)',
-            color: '#f8fafc',
-            padding: '8px 14px',
-            borderRadius: 'var(--radius-sm)',
-            fontSize: '12px',
-            fontFamily: 'var(--font-mono)',
+            bottom: '56px',
+            right: '24px',
+            padding: '7px 14px',
+            fontSize: '11.5px',
             zIndex: 100,
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            boxShadow: '0 4px 14px rgba(0,0,0,0.5)',
+            color: '#f8fafc',
+            border: '1px solid var(--accent-cyan)',
           }}
         >
-          <CheckCircle2 size={15} style={{ color: 'var(--accent-cyan)' }} />
+          <CheckCircle2 size={14} style={{ color: 'var(--accent-cyan)' }} />
           <span>{notification}</span>
         </div>
       )}
 
-      {/* Main Center Area: Hero 3D Viewer & Top Telemetry Metrics */}
+      {/* CENTER: HERO 3D RECONSTRUCTION WORKSPACE (Dominate View) */}
       <div
         style={{
-          flex: '1 1 65%',
+          flex: 1,
           minWidth: 0,
+          height: '100%',
           display: 'flex',
           flexDirection: 'column',
-          gap: '10px',
-          height: '100%',
         }}
       >
-        {/* Quick Top Metrics Ribbon */}
-        <div className="dashboard-metrics-grid">
-          <MetricCard
-            label="Total Observed Room"
-            value="84.6%"
-            subValue="Confidence: 91.2%"
-            variant="emerald"
-            icon={<Layers size={14} />}
-          />
-          <MetricCard
-            label="Sparse Keypoints"
-            value="164.2k"
-            unit="pts"
-            subValue="412 keyframes"
-            variant="cyan"
-            icon={<Box size={14} />}
-          />
-          <MetricCard
-            label="Dynamic Entities"
-            value="3"
-            unit="tracked"
-            subValue="-42.8k pts masked"
-            variant="amber"
-            icon={<ShieldAlert size={14} />}
-          />
-          <MetricCard
-            label="AI Inpainting Zones"
-            value="2"
-            unit="blindspots"
-            subValue="Diffusion prior ready"
-            variant="indigo"
-            icon={<Sparkles size={14} />}
-          />
-        </div>
-
-        {/* HERO 3D SCENE VIEWER */}
-        <div style={{ flex: 1, minHeight: 0 }}>
-          <SceneViewer
-            mode={viewportMode}
-            onModeChange={setViewportMode}
-            dynamicObjects={mockDynamicObjects}
-            isStreaming={isStreaming}
-          />
-        </div>
+        <SceneViewer
+          mode={viewportMode}
+          onModeChange={setViewportMode}
+          dynamicObjects={mockDynamicObjects}
+          isStreaming={isStreaming}
+        />
       </div>
 
-      {/* Right Column: Multi-panel Telemetry & Perception Insights */}
-      <div className="dashboard-right-drawer">
-        {/* Mobile Pairing & WebRTC Ingest */}
-        <ConnectionStatus connection={mockDeviceConnection} />
-
-        {/* 3D Reconstruction Pipeline Progress */}
-        <ReconstructionStatus
+      {/* RIGHT: CONTEXTUAL INSPECTOR PANEL */}
+      <div
+        style={{
+          flex: '0 0 340px',
+          width: '340px',
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        <InspectorPanel
           stages={mockReconstructionStages}
-          currentStageIndex={2}
-        />
-
-        {/* Observation-Aware Coverage Analysis */}
-        <CoveragePanel
           coverage={mockObservationCoverage}
+          dynamicObjects={mockDynamicObjects}
+          deviceConnection={mockDeviceConnection}
+          sessionInfo={mockSessionInfo}
+          selectedObjectId={selectedObjectId}
+          onSelectObject={handleSelectObject}
           onInspectBlindspot={(name) => showNotification(`Inspecting sector: ${name}`)}
         />
-
-        {/* Dynamic Object Filtering */}
-        <DynamicObjectsPanel
-          dynamicObjects={mockDynamicObjects}
-          onSelectObject={handleSelectObject}
-          selectedObjectId={selectedObjectId}
-        />
-
-        {/* Real-time Camera Guidance for Operator */}
-        <CameraGuidance cues={mockGuidanceCues} />
-
-        {/* Session Metadata Panel */}
-        <SessionPanel session={mockSessionInfo} />
       </div>
     </DashboardLayout>
   );

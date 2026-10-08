@@ -1,14 +1,12 @@
 import React from 'react';
 import {
-  Eye,
   Box,
+  Layers,
   PieChart,
   UserX,
-  Compass,
-  FileText,
+  Sparkles,
   ChevronLeft,
   ChevronRight,
-  Sparkles,
 } from 'lucide-react';
 import type { ViewportMode } from '../types/dashboard';
 
@@ -17,8 +15,8 @@ interface SidebarProps {
   onSelectMode: (mode: ViewportMode) => void;
   collapsed: boolean;
   onToggleCollapse: () => void;
-  activeViewSection: string;
-  onSelectSection: (section: string) => void;
+  activeViewSection?: string;
+  onSelectSection?: (section: string) => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -26,110 +24,90 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectMode,
   collapsed,
   onToggleCollapse,
-  activeViewSection,
   onSelectSection,
 }) => {
   const navItems = [
     {
-      id: 'overview',
-      label: 'Main Dashboard',
-      icon: Eye,
-      badge: 'LIVE',
-      mode: 'point_cloud' as ViewportMode,
-    },
-    {
       id: 'point_cloud',
-      label: 'Sparse SfM View',
+      label: 'Sparse SfM',
       icon: Box,
       mode: 'point_cloud' as ViewportMode,
+      shortcut: '1',
     },
     {
       id: 'dense_mesh',
-      label: 'Dense TSDF Mesh',
-      icon: Box,
+      label: 'Dense TSDF',
+      icon: Layers,
       mode: 'dense_mesh' as ViewportMode,
+      shortcut: '2',
     },
     {
       id: 'coverage',
-      label: 'Coverage Analysis',
+      label: 'Coverage Map',
       icon: PieChart,
-      badge: '84.6%',
       mode: 'coverage_heatmap' as ViewportMode,
+      shortcut: '3',
     },
     {
       id: 'dynamic_objects',
       label: 'Dynamic Filter',
       icon: UserX,
-      badge: '3 DET',
       mode: 'dynamic_filter' as ViewportMode,
+      shortcut: '4',
     },
     {
       id: 'ai_completed',
-      label: 'AI Scene Completion',
+      label: 'AI Inpainting',
       icon: Sparkles,
-      badge: 'NEW',
       mode: 'ai_completed' as ViewportMode,
-    },
-    {
-      id: 'guidance',
-      label: 'Mobile Guidance',
-      icon: Compass,
-      mode: 'point_cloud' as ViewportMode,
-    },
-    {
-      id: 'logs',
-      label: 'Pipeline Logs',
-      icon: FileText,
-      mode: 'point_cloud' as ViewportMode,
+      shortcut: '5',
     },
   ];
 
   return (
     <aside
       style={{
-        width: collapsed ? '56px' : '220px',
-        minWidth: collapsed ? '56px' : '220px',
-        backgroundColor: 'var(--bg-surface-0)',
-        borderRight: '1px solid var(--border-default)',
+        width: collapsed ? '60px' : '190px',
+        minWidth: collapsed ? '60px' : '190px',
+        backgroundColor: 'var(--bg-surface)',
+        borderRight: '1px solid var(--border-subtle)',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
-        transition: 'width 0.2s ease',
+        transition: 'width 0.18s cubic-bezier(0.4, 0, 0.2, 1)',
         userSelect: 'none',
         zIndex: 40,
       }}
     >
       {/* Top Navigation Sections */}
-      <div style={{ display: 'flex', flexDirection: 'column', padding: '8px 6px', gap: '4px' }}>
-        <div
-          style={{
-            padding: '6px 8px',
-            fontSize: '10px',
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            color: 'var(--text-muted)',
-            letterSpacing: '0.06em',
-            display: collapsed ? 'none' : 'block',
-          }}
-        >
-          Perception Pipeline
-        </div>
+      <div style={{ display: 'flex', flexDirection: 'column', padding: '10px 8px', gap: '4px' }}>
+        {!collapsed && (
+          <div
+            style={{
+              padding: '6px 8px 8px 8px',
+              fontSize: '10px',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              color: 'var(--text-muted)',
+              letterSpacing: '0.08em',
+            }}
+          >
+            Reconstruction Modes
+          </div>
+        )}
 
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive =
-            activeViewSection === item.id || (item.mode && activeMode === item.mode && activeViewSection === 'overview');
+          const isActive = activeMode === item.mode;
 
           return (
             <button
               key={item.id}
               onClick={() => {
-                onSelectSection(item.id);
-                if (item.mode) {
-                  onSelectMode(item.mode);
-                }
+                onSelectSection?.(item.id);
+                onSelectMode(item.mode);
               }}
-              title={collapsed ? item.label : undefined}
+              title={collapsed ? `${item.label} (${item.shortcut})` : undefined}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -137,16 +115,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 padding: collapsed ? '10px 0' : '8px 10px',
                 justifyContent: collapsed ? 'center' : 'flex-start',
                 borderRadius: 'var(--radius-sm)',
-                background: isActive ? 'var(--bg-surface-2)' : 'transparent',
+                background: isActive ? 'var(--bg-surface-elevated)' : 'transparent',
+                border: isActive ? '1px solid var(--border-subtle)' : '1px solid transparent',
                 borderLeft: isActive ? '3px solid var(--accent-cyan)' : '3px solid transparent',
                 color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
                 fontWeight: isActive ? 600 : 400,
-                fontSize: '12.5px',
+                fontSize: '12px',
                 position: 'relative',
               }}
               onMouseEnter={(e) => {
                 if (!isActive) {
-                  e.currentTarget.style.backgroundColor = 'var(--bg-surface-1)';
+                  e.currentTarget.style.backgroundColor = 'var(--bg-surface-hover)';
                   e.currentTarget.style.color = 'var(--text-primary)';
                 }
               }}
@@ -158,27 +137,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
               }}
             >
               <Icon size={16} style={{ color: isActive ? 'var(--accent-cyan)' : 'inherit', flexShrink: 0 }} />
-              
+
               {!collapsed && (
                 <span style={{ flex: 1, textAlign: 'left', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {item.label}
                 </span>
               )}
 
-              {!collapsed && item.badge && (
+              {!collapsed && item.shortcut && (
                 <span
                   className="font-mono"
                   style={{
                     fontSize: '9.5px',
-                    padding: '1px 5px',
+                    color: 'var(--text-muted)',
+                    background: 'rgba(255,255,255,0.04)',
+                    padding: '1px 4px',
                     borderRadius: '3px',
-                    background: item.id === 'ai_completed' ? 'var(--accent-indigo-subtle)' : 'var(--accent-cyan-subtle)',
-                    color: item.id === 'ai_completed' ? '#a5b4fc' : '#38bdf8',
-                    border: `1px solid ${item.id === 'ai_completed' ? 'rgba(99,102,241,0.3)' : 'rgba(6,182,212,0.3)'}`,
-                    fontWeight: 600,
                   }}
                 >
-                  {item.badge}
+                  {item.shortcut}
                 </span>
               )}
             </button>
@@ -186,14 +163,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
         })}
       </div>
 
-      {/* Bottom Session Tools & Collapse Button */}
+      {/* Bottom Collapse Button */}
       <div
         style={{
           borderTop: '1px solid var(--border-subtle)',
           padding: '8px 6px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '4px',
         }}
       >
         <button
@@ -203,13 +177,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            padding: '8px',
+            padding: '7px 8px',
+            width: '100%',
             justifyContent: collapsed ? 'center' : 'flex-start',
             color: 'var(--text-muted)',
             borderRadius: 'var(--radius-sm)',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = 'var(--bg-surface-1)';
+            e.currentTarget.style.backgroundColor = 'var(--bg-surface-hover)';
             e.currentTarget.style.color = 'var(--text-secondary)';
           }}
           onMouseLeave={(e) => {
@@ -217,8 +192,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
             e.currentTarget.style.color = 'var(--text-muted)';
           }}
         >
-          {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-          {!collapsed && <span style={{ fontSize: '11.5px' }}>Collapse Panel</span>}
+          {collapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
+          {!collapsed && <span style={{ fontSize: '11px' }}>Collapse View</span>}
         </button>
       </div>
     </aside>

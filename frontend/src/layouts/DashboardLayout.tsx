@@ -7,6 +7,7 @@ import type {
   SystemHardwareMetrics,
   MobileDeviceConnection,
   ViewportMode,
+  GuidanceCue,
 } from '../types/dashboard';
 
 interface DashboardLayoutProps {
@@ -15,7 +16,6 @@ interface DashboardLayoutProps {
   deviceConnection: MobileDeviceConnection;
   isStreaming: boolean;
   onToggleStream: () => void;
-  onRefreshTelemetry: () => void;
   activeMode: ViewportMode;
   onSelectMode: (mode: ViewportMode) => void;
   activeSection: string;
@@ -26,6 +26,7 @@ interface DashboardLayoutProps {
   onRunDenseFusion: () => void;
   onRunAIInpainting: () => void;
   onExportModel: (format: 'ply' | 'glb' | 'obj') => void;
+  guidanceCue?: GuidanceCue;
   children: React.ReactNode;
 }
 
@@ -35,7 +36,6 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   deviceConnection,
   isStreaming,
   onToggleStream,
-  onRefreshTelemetry,
   activeMode,
   onSelectMode,
   activeSection,
@@ -46,6 +46,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   onRunDenseFusion,
   onRunAIInpainting,
   onExportModel,
+  guidanceCue,
   children,
 }) => {
   return (
@@ -66,10 +67,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         deviceConnection={deviceConnection}
         isStreaming={isStreaming}
         onToggleStream={onToggleStream}
-        onRefreshTelemetry={onRefreshTelemetry}
       />
 
-      {/* Main Workspace Area (Sidebar + Center Hero & Telemetry Panels) */}
+      {/* Main Workstation Workspace */}
       <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
         <Sidebar
           activeMode={activeMode}
@@ -80,7 +80,6 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           onSelectSection={onSelectSection}
         />
 
-        {/* Dynamic Main Content */}
         <main
           style={{
             flex: 1,
@@ -89,15 +88,15 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             minHeight: 0,
             overflow: 'hidden',
             backgroundColor: 'var(--bg-app)',
-            padding: '10px',
-            gap: '10px',
+            padding: '10px 12px',
+            gap: '12px',
           }}
         >
           {children}
         </main>
       </div>
 
-      {/* Bottom Action / Pipeline Control Bar */}
+      {/* Bottom Command / Guidance Bar */}
       <ActionBar
         isStreaming={isStreaming}
         onToggleStream={onToggleStream}
@@ -106,6 +105,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         onRunAIInpainting={onRunAIInpainting}
         onExportModel={onExportModel}
         activeMode={activeMode}
+        guidanceCue={guidanceCue}
       />
     </div>
   );

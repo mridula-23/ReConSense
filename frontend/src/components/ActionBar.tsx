@@ -1,12 +1,12 @@
 import React from 'react';
 import {
-  Play,
-  Pause,
   Box,
   Layers,
   Sparkles,
+  Navigation,
+  Download,
 } from 'lucide-react';
-import type { ViewportMode } from '../types/dashboard';
+import type { ViewportMode, GuidanceCue } from '../types/dashboard';
 
 interface ActionBarProps {
   isStreaming: boolean;
@@ -16,142 +16,165 @@ interface ActionBarProps {
   onRunAIInpainting: () => void;
   onExportModel: (format: 'ply' | 'glb' | 'obj') => void;
   activeMode: ViewportMode;
+  guidanceCue?: GuidanceCue;
 }
 
 export const ActionBar: React.FC<ActionBarProps> = ({
-  isStreaming,
-  onToggleStream,
   onRunSparseSfM,
   onRunDenseFusion,
   onRunAIInpainting,
   onExportModel,
   activeMode,
+  guidanceCue,
 }) => {
   return (
-    <div
+    <footer
       style={{
         height: '46px',
         minHeight: '46px',
-        backgroundColor: 'var(--bg-surface-0)',
-        borderTop: '1px solid var(--border-default)',
+        backgroundColor: 'var(--bg-surface)',
+        borderTop: '1px solid var(--border-subtle)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '0 14px',
-        gap: '12px',
+        padding: '0 18px',
+        gap: '16px',
         zIndex: 30,
       }}
     >
-      {/* Left: Stream Control & Pipeline Execution */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <button
-          onClick={onToggleStream}
+      {/* Left: Real-time Live Guidance Cue for Mobile Operator */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+        <div
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
-            padding: '6px 12px',
+            background: 'var(--bg-surface-elevated)',
+            border: '1px solid var(--border-subtle)',
+            padding: '4px 10px',
             borderRadius: 'var(--radius-sm)',
-            background: isStreaming ? 'var(--accent-rose)' : 'var(--accent-emerald)',
-            color: '#fff',
-            fontWeight: 600,
-            fontSize: '11.5px',
-            boxShadow: isStreaming ? '0 0 10px rgba(244, 63, 94, 0.4)' : '0 0 10px rgba(16, 185, 129, 0.4)',
+            fontSize: '11px',
+            maxWidth: '460px',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
           }}
         >
-          {isStreaming ? <Pause size={14} /> : <Play size={14} />}
-          <span>{isStreaming ? 'Stop Ingest' : 'Start Capture'}</span>
-        </button>
+          <Navigation size={13} style={{ color: 'var(--accent-amber)', flexShrink: 0 }} />
+          <span style={{ color: 'var(--text-muted)', textTransform: 'uppercase', fontSize: '10px', fontWeight: 600 }}>
+            Guidance:
+          </span>
+          <span style={{ color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {guidanceCue ? guidanceCue.actionText : 'Scanning velocity optimal. Continue path sweep.'}
+          </span>
+        </div>
+      </div>
 
-        <div style={{ height: '18px', width: '1px', backgroundColor: 'var(--border-subtle)' }} />
-
+      {/* Center: Primary Pipeline Execution Controls */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
         <button
           onClick={onRunSparseSfM}
-          className="badge"
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: '5px',
-            padding: '5px 10px',
-            cursor: 'pointer',
-            backgroundColor: activeMode === 'point_cloud' ? 'var(--bg-surface-3)' : 'var(--bg-surface-2)',
-            border: activeMode === 'point_cloud' ? '1px solid var(--accent-cyan)' : '1px solid var(--border-default)',
-            color: 'var(--text-primary)',
+            padding: '5px 11px',
+            borderRadius: 'var(--radius-sm)',
+            background: activeMode === 'point_cloud' ? 'var(--bg-surface-active)' : 'var(--bg-surface-elevated)',
+            border: activeMode === 'point_cloud' ? '1px solid var(--accent-cyan)' : '1px solid var(--border-subtle)',
+            color: activeMode === 'point_cloud' ? 'var(--accent-cyan)' : 'var(--text-secondary)',
+            fontSize: '11.5px',
+            fontWeight: 500,
+            fontFamily: 'var(--font-mono)',
           }}
         >
-          <Box size={13} style={{ color: 'var(--accent-cyan)' }} />
+          <Box size={13} />
           <span>Sparse SfM</span>
         </button>
 
         <button
           onClick={onRunDenseFusion}
-          className="badge"
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: '5px',
-            padding: '5px 10px',
-            cursor: 'pointer',
-            backgroundColor: activeMode === 'dense_mesh' ? 'var(--bg-surface-3)' : 'var(--bg-surface-2)',
-            border: activeMode === 'dense_mesh' ? '1px solid var(--accent-emerald)' : '1px solid var(--border-default)',
-            color: 'var(--text-primary)',
+            padding: '5px 11px',
+            borderRadius: 'var(--radius-sm)',
+            background: activeMode === 'dense_mesh' ? 'var(--bg-surface-active)' : 'var(--bg-surface-elevated)',
+            border: activeMode === 'dense_mesh' ? '1px solid var(--accent-emerald)' : '1px solid var(--border-subtle)',
+            color: activeMode === 'dense_mesh' ? 'var(--accent-emerald)' : 'var(--text-secondary)',
+            fontSize: '11.5px',
+            fontWeight: 500,
+            fontFamily: 'var(--font-mono)',
           }}
         >
-          <Layers size={13} style={{ color: 'var(--accent-emerald)' }} />
-          <span>Dense TSDF Fusion</span>
+          <Layers size={13} />
+          <span>Dense TSDF</span>
         </button>
 
         <button
           onClick={onRunAIInpainting}
-          className="badge badge-indigo"
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: '5px',
-            padding: '5px 10px',
-            cursor: 'pointer',
-            backgroundColor: activeMode === 'ai_completed' ? 'rgba(99, 102, 241, 0.25)' : undefined,
+            padding: '5px 11px',
+            borderRadius: 'var(--radius-sm)',
+            background: activeMode === 'ai_completed' ? 'var(--bg-surface-active)' : 'var(--bg-surface-elevated)',
+            border: activeMode === 'ai_completed' ? '1px solid var(--accent-indigo)' : '1px solid var(--border-subtle)',
+            color: activeMode === 'ai_completed' ? 'var(--accent-indigo)' : 'var(--text-secondary)',
+            fontSize: '11.5px',
+            fontWeight: 500,
+            fontFamily: 'var(--font-mono)',
           }}
         >
           <Sparkles size={13} />
-          <span>Observation AI Completion</span>
+          <span>AI Inpainting</span>
         </button>
       </div>
 
-      {/* Right: Export Options */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-          Export Scene:
-        </span>
+      {/* Right: Export Format Options */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
         <button
           onClick={() => onExportModel('ply')}
+          title="Export Point Cloud (.PLY)"
           style={{
-            padding: '4px 8px',
+            padding: '4px 9px',
             borderRadius: 'var(--radius-sm)',
-            background: 'var(--bg-surface-1)',
+            background: 'var(--bg-surface-elevated)',
             border: '1px solid var(--border-subtle)',
             fontSize: '11px',
             fontFamily: 'var(--font-mono)',
             color: 'var(--text-secondary)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
           }}
         >
-          .PLY (Point Cloud)
+          <Download size={12} />
+          <span>.PLY</span>
         </button>
+
         <button
           onClick={() => onExportModel('glb')}
+          title="Export 3D Mesh (.GLB)"
           style={{
-            padding: '4px 8px',
+            padding: '4px 9px',
             borderRadius: 'var(--radius-sm)',
-            background: 'var(--bg-surface-1)',
+            background: 'var(--bg-surface-elevated)',
             border: '1px solid var(--border-subtle)',
             fontSize: '11px',
             fontFamily: 'var(--font-mono)',
             color: 'var(--text-secondary)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
           }}
         >
-          .GLB (3D Mesh)
+          <Download size={12} />
+          <span>.GLB</span>
         </button>
       </div>
-    </div>
+    </footer>
   );
 };

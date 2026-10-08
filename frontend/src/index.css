@@ -1,46 +1,41 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 :root {
-  --bg-app: #080c14;
-  --bg-surface-0: #0b101b;
-  --bg-surface-1: #0f1726;
-  --bg-surface-2: #141f33;
-  --bg-surface-3: #1a2842;
-  --bg-surface-hover: #1e2e4c;
-  
-  --border-subtle: #162238;
-  --border-default: #1e2f4d;
-  --border-active: #2f4977;
-  --border-highlight: #38bdf8;
-  
+  --bg-app: #080b11;
+  --bg-workspace: #05070c;
+  --bg-surface: #0d121c;
+  --bg-surface-elevated: #131a27;
+  --bg-surface-hover: #182233;
+  --bg-surface-active: #1d293d;
+
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-default: rgba(255, 255, 255, 0.1);
+  --border-active: #38bdf8;
+
   --text-primary: #f1f5f9;
   --text-secondary: #94a3b8;
   --text-muted: #64748b;
-  --text-inverse: #030712;
-  
-  --accent-cyan: #06b6d4;
-  --accent-cyan-subtle: rgba(6, 182, 212, 0.12);
+
+  --accent-cyan: #38bdf8;
+  --accent-cyan-subtle: rgba(56, 189, 248, 0.12);
   --accent-emerald: #10b981;
   --accent-emerald-subtle: rgba(16, 185, 129, 0.12);
   --accent-amber: #f59e0b;
   --accent-amber-subtle: rgba(245, 158, 11, 0.12);
   --accent-rose: #f43f5e;
   --accent-rose-subtle: rgba(244, 63, 94, 0.12);
-  --accent-indigo: #6366f1;
-  --accent-indigo-subtle: rgba(99, 102, 241, 0.12);
-  --accent-purple: #a855f7;
+  --accent-indigo: #818cf8;
+  --accent-indigo-subtle: rgba(129, 140, 248, 0.12);
 
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', Consolas, 'SF Mono', monospace;
-  
+
   --radius-sm: 4px;
   --radius-md: 6px;
   --radius-lg: 8px;
-  
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.35);
-  --shadow-md: 0 4px 12px 0 rgba(0, 0, 0, 0.45);
-  --shadow-lg: 0 10px 25px -3px rgba(0, 0, 0, 0.6);
-  --shadow-glow-cyan: 0 0 12px rgba(6, 182, 212, 0.25);
+
+  --shadow-subtle: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-overlay: 0 8px 24px rgba(0, 0, 0, 0.5);
 }
 
 * {
@@ -63,31 +58,29 @@ html, body, #root {
   overflow: hidden;
 }
 
-/* Custom technical scrollbar */
+/* Custom workstation scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg-surface-0);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--border-default);
-  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--border-active);
+  background: rgba(255, 255, 255, 0.22);
 }
 
-/* Monospace text utility */
 .font-mono {
   font-family: var(--font-mono);
 }
 
-/* Button & Interactive styles */
 button {
   font-family: inherit;
   font-size: inherit;
@@ -100,89 +93,66 @@ button {
 }
 
 button:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
-/* Common Technical Badges */
+/* Technical Badges */
 .badge {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 2px 7px;
+  padding: 3px 7px;
   font-size: 11px;
   font-weight: 500;
   font-family: var(--font-mono);
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border-default);
-  background: var(--bg-surface-2);
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
   color: var(--text-secondary);
 }
 
 .badge-cyan {
-  border-color: rgba(6, 182, 212, 0.3);
   background: var(--accent-cyan-subtle);
-  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.25);
+  color: var(--accent-cyan);
 }
 
 .badge-emerald {
-  border-color: rgba(16, 185, 129, 0.3);
   background: var(--accent-emerald-subtle);
-  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.25);
+  color: var(--accent-emerald);
 }
 
 .badge-amber {
-  border-color: rgba(245, 158, 11, 0.3);
   background: var(--accent-amber-subtle);
-  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.25);
+  color: var(--accent-amber);
 }
 
 .badge-rose {
-  border-color: rgba(244, 63, 94, 0.3);
   background: var(--accent-rose-subtle);
-  color: #fb7185;
+  border-color: rgba(244, 63, 94, 0.25);
+  color: var(--accent-rose);
 }
 
 .badge-indigo {
-  border-color: rgba(99, 102, 241, 0.3);
   background: var(--accent-indigo-subtle);
-  color: #a5b4fc;
+  border-color: rgba(129, 140, 248, 0.25);
+  color: var(--accent-indigo);
 }
 
-/* Subtle Technical Panel Container */
-.tech-panel {
-  background: var(--bg-surface-1);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  box-shadow: var(--shadow-sm);
+/* Glass Floating HUD Panels */
+.hud-panel {
+  background: rgba(13, 18, 28, 0.82);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-overlay);
 }
 
-.tech-panel-header {
-  height: 36px;
-  min-height: 36px;
-  padding: 0 12px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: var(--bg-surface-0);
-  border-bottom: 1px solid var(--border-subtle);
-  font-weight: 600;
-  font-size: 11.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-secondary);
-}
-
-.tech-panel-content {
-  padding: 10px 12px;
-  overflow-y: auto;
-  flex: 1;
-}
-
-/* Pulse animation for live indicators */
+/* Pulse animation */
 @keyframes pulse-ring {
   0% {
     transform: scale(0.95);
@@ -199,57 +169,23 @@ button:disabled {
 }
 
 .pulse-dot {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background-color: var(--accent-emerald);
   box-shadow: 0 0 8px var(--accent-emerald);
   animation: pulse-ring 2s infinite cubic-bezier(0.455, 0.03, 0.515, 0.955);
 }
 
-.pulse-dot-amber {
-  background-color: var(--accent-amber);
-  box-shadow: 0 0 8px var(--accent-amber);
-}
-
-.pulse-dot-cyan {
-  background-color: var(--accent-cyan);
-  box-shadow: 0 0 8px var(--accent-cyan);
-}
-
-/* Responsive Dashboard Layout Utilities */
-.dashboard-metrics-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-  flex-shrink: 0;
-}
-
-.dashboard-right-drawer {
-  flex: 0 0 380px;
-  width: 380px;
-  max-width: 420px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  height: 100%;
-  overflow-y: auto;
-  padding-right: 2px;
-}
-
-@media (max-width: 1366px) {
-  .dashboard-right-drawer {
-    flex: 0 0 330px;
-    width: 330px;
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }
 
-@media (max-width: 1100px) {
-  .dashboard-metrics-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .dashboard-right-drawer {
-    flex: 0 0 300px;
-    width: 300px;
-  }
+.spin-animation {
+  animation: spin 1s linear infinite;
 }
