@@ -1,279 +1,273 @@
 import React, { createContext, useContext, useState } from 'react';
-import type {
-  AppScreen,
-  ViewportMode,
-  PhoneConnection,
-  ScanSession,
-  ProcessingStep,
-  MovingObject,
-  RoomCoverage,
-  GuidanceTip,
-  HardwareInfo,
-} from '../types/dashboard';
 
-interface ScanContextType {
-  currentScreen: AppScreen;
-  setCurrentScreen: (screen: AppScreen) => void;
-  viewportMode: ViewportMode;
-  setViewportMode: (mode: ViewportMode) => void;
-  
-  phoneConnection: PhoneConnection;
-  setPhoneConnection: React.Dispatch<React.SetStateAction<PhoneConnection>>;
-  
-  activeSession: ScanSession | null;
-  setActiveSession: (session: ScanSession | null) => void;
-  previousScans: ScanSession[];
-  
-  processingSteps: ProcessingStep[];
-  setProcessingSteps: React.Dispatch<React.SetStateAction<ProcessingStep[]>>;
-  
-  roomCoverage: RoomCoverage;
-  setRoomCoverage: React.Dispatch<React.SetStateAction<RoomCoverage>>;
-  
-  movingObjects: MovingObject[];
-  setMovingObjects: React.Dispatch<React.SetStateAction<MovingObject[]>>;
-  
-  guidanceTips: GuidanceTip[];
-  setGuidanceTips: React.Dispatch<React.SetStateAction<GuidanceTip[]>>;
-  
-  hardwareInfo: HardwareInfo;
-  
-  isDemoSampleLoaded: boolean;
-  loadDemoSample: () => void;
-  startNewScan: (scanName: string, roomType: string) => void;
-  runReconstruction: () => void;
-  resetToHome: () => void;
+export type ViewportMode = 'shaded' | 'wireframe' | 'pointcloud' | 'coverage';
+
+export interface CoverageSection {
+  id: string;
+  name: string;
+  category: 'seen' | 'low_views' | 'unseen';
+  status: string;
 }
 
-const defaultProcessingSteps: ProcessingStep[] = [
-  {
-    id: 'step-1',
-    name: '1. Camera & Scene Setup',
-    simpleDescription: 'Tracking camera movement and finding matching points',
-    technicalName: 'Feature Tracking & Sparse SfM',
-    status: 'waiting',
-  },
-  {
-    id: 'step-2',
-    name: '2. 3D Room Reconstruction',
-    simpleDescription: 'Building room walls, floor, and furniture shapes',
-    technicalName: 'TSDF Volumetric Fusion',
-    status: 'waiting',
-  },
-  {
-    id: 'step-3',
-    name: '3. Clean Moving Objects',
-    simpleDescription: 'Detecting and removing people or moving items from static room',
-    technicalName: 'Dynamic Entity Segmentation',
-    status: 'waiting',
-  },
-  {
-    id: 'step-4',
-    name: '4. Fill Missing Areas',
-    simpleDescription: 'Intelligently completing areas behind furniture or unreached spots',
-    technicalName: 'Observation-Aware Diffusion Prior',
-    status: 'waiting',
-  },
-];
+export interface GuidanceTip {
+  id: string;
+  title: string;
+  description: string;
+  severity: 'low' | 'medium' | 'high';
+}
 
-const defaultRoomCoverage: RoomCoverage = {
-  isCalculated: false,
-  sectors: [],
-  unseenAreaAlerts: [],
+export interface DynamicObject {
+  id: string;
+  name: string;
+  confidence: number;
+}
+
+export interface ProcessingStep {
+  id: string;
+  label: string;
+  status: 'done' | 'active' | 'pending';
+}
+
+export interface ScanSession {
+  id: string;
+  name: string;
+  roomType: string;
+  status: 'idle' | 'connected' | 'capturing' | 'processing' | 'ready' | 'error';
+  createdAt: string;
+}
+
+export interface ScanState {
+  scanName: string;
+  roomType: string;
+  phoneConnected: boolean;
+  captureStatus: 'idle' | 'ready' | 'scanning' | 'finished';
+  isCapturing: boolean;
+  captureFinished: boolean;
+  isProcessing: boolean;
+  processingStatus: 'idle' | 'preparing' | 'reconstructing' | 'checking_coverage' | 'completed' | 'disconnected';
+  sceneReady: boolean;
+  reconstructionStatus: 'not_started' | 'in_progress' | 'waiting' | 'ready' | 'error';
+  coverageReady: boolean;
+  coverageStatus: 'not_calculated' | 'ready';
+}
+
+export interface PhoneConnectionState {
+  connected: boolean;
+  deviceId?: string;
+  deviceType?: string;
+}
+
+interface ScanContextType {
+  scanState: ScanState;
+  setScanState: React.Dispatch<React.SetStateAction<ScanState>>;
+  activeSession: ScanSession | null;
+  setActiveSession: React.Dispatch<React.SetStateAction<ScanSession | null>>;
+  previousScans: { id: string; name: string; date: string; roomType?: string; createdAt?: string }[];
+  viewportMode: ViewportMode;
+  setViewportMode: (mode: ViewportMode) => void;
+  phoneConnection: PhoneConnectionState;
+  setPhoneConnection: React.Dispatch<React.SetStateAction<PhoneConnectionState>>;
+  processingSteps: ProcessingStep[];
+  roomCoverage: CoverageSection[] | null;
+  movingObjects: DynamicObject[];
+  guidanceTips: GuidanceTip[];
+  isDemoSampleLoaded: boolean;
+  currentScreen?: string;
+  setCurrentScreen?: (screen: string) => void;
+  startNewScan: (name?: string, roomType?: string) => void;
+  connectPhone: () => void;
+  startCapture: () => void;
+  finishCapture: () => void;
+  startProcessing: () => void;
+  loadDemoSample: () => void;
+  runReconstruction?: () => void;
+  resetToHome: () => void;
+  resetAll: () => void;
+}
+
+const defaultScanState: ScanState = {
+  scanName: 'Room Scan 01',
+  roomType: 'Living Room',
+  phoneConnected: false,
+  captureStatus: 'ready',
+  isCapturing: false,
+  captureFinished: false,
+  isProcessing: false,
+  processingStatus: 'disconnected',
+  sceneReady: false,
+  reconstructionStatus: 'waiting',
+  coverageReady: false,
+  coverageStatus: 'not_calculated',
 };
+
+const defaultProcessingSteps: ProcessingStep[] = [
+  { id: '1', label: 'Preparing video', status: 'done' },
+  { id: '2', label: 'Building the scene', status: 'active' },
+  { id: '3', label: 'Checking room coverage', status: 'pending' },
+  { id: '4', label: 'Detecting moving objects', status: 'pending' },
+];
 
 const ScanContext = createContext<ScanContextType | undefined>(undefined);
 
 export const ScanProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentScreen, setCurrentScreen] = useState<AppScreen>('home');
-  const [viewportMode, setViewportMode] = useState<ViewportMode>('point_cloud');
-  
-  // Honest Phone Connection state (starts disconnected until real mobile pairs)
-  const [phoneConnection, setPhoneConnection] = useState<PhoneConnection>({
-    status: 'disconnected',
+  const [scanState, setScanState] = useState<ScanState>(defaultScanState);
+  const [activeSession, setActiveSession] = useState<ScanSession | null>({
+    id: 'SCAN-2026-INIT',
+    name: 'Room Scan 01',
+    roomType: 'Living Room',
+    status: 'idle',
+    createdAt: new Date().toLocaleDateString(),
   });
-
-  const [activeSession, setActiveSession] = useState<ScanSession | null>(null);
-  const [previousScans, setPreviousScans] = useState<ScanSession[]>([]);
-  
-  const [processingSteps, setProcessingSteps] = useState<ProcessingStep[]>(defaultProcessingSteps);
-  const [roomCoverage, setRoomCoverage] = useState<RoomCoverage>(defaultRoomCoverage);
-  const [movingObjects, setMovingObjects] = useState<MovingObject[]>([]);
+  const [previousScans, setPreviousScans] = useState<{ id: string; name: string; date: string; roomType?: string; createdAt?: string }[]>([]);
+  const [viewportMode, setViewportMode] = useState<ViewportMode>('shaded');
+  const [phoneConnection, setPhoneConnection] = useState<PhoneConnectionState>({
+    connected: false,
+  });
+  const [processingSteps] = useState<ProcessingStep[]>(defaultProcessingSteps);
+  const [roomCoverage, setRoomCoverage] = useState<CoverageSection[] | null>(null);
+  const [movingObjects, setMovingObjects] = useState<DynamicObject[]>([]);
   const [guidanceTips, setGuidanceTips] = useState<GuidanceTip[]>([]);
-  
-  const [hardwareInfo] = useState<HardwareInfo>({
-    gpuName: 'Host Processing Node',
-    isAvailable: true,
-  });
-
   const [isDemoSampleLoaded, setIsDemoSampleLoaded] = useState<boolean>(false);
+  const [currentScreen, setCurrentScreen] = useState<string>('home');
 
-  const startNewScan = (scanName: string, roomType: string) => {
-    const newSession: ScanSession = {
+  const startNewScan = (name?: string, roomType?: string) => {
+    const scanName = name || 'Room Scan';
+    const room = roomType || 'Indoor Room';
+    setScanState({
+      ...defaultScanState,
+      scanName,
+      roomType: room,
+    });
+    setActiveSession({
       id: `SCAN-${Date.now().toString().slice(-4)}`,
-      name: scanName.trim() || 'Living Room Scan',
-      roomType: roomType || 'Indoor Room',
+      name: scanName,
+      roomType: room,
+      status: 'idle',
       createdAt: new Date().toLocaleDateString(),
-      status: 'draft',
-      frameCount: 0,
-      keyframeCount: 0,
-    };
-    setActiveSession(newSession);
+    });
     setIsDemoSampleLoaded(false);
-    setProcessingSteps(defaultProcessingSteps);
-    setRoomCoverage(defaultRoomCoverage);
+    setRoomCoverage(null);
     setMovingObjects([]);
-    setGuidanceTips([
-      {
-        id: 'tip-1',
-        type: 'direction',
-        title: 'Ready for Video',
-        message: 'Connect your phone or upload a video clip to begin scanning.',
-      },
-    ]);
-    setCurrentScreen('new_scan');
+    setGuidanceTips([]);
+  };
+
+  const connectPhone = () => {
+    setScanState((prev) => ({
+      ...prev,
+      phoneConnected: true,
+      captureStatus: 'ready',
+    }));
+    setPhoneConnection({
+      connected: true,
+      deviceId: 'PHONE-CAM-01',
+      deviceType: 'Smartphone',
+    });
+  };
+
+  const startCapture = () => {
+    setScanState((prev) => ({
+      ...prev,
+      isCapturing: true,
+      captureStatus: 'scanning',
+    }));
+  };
+
+  const finishCapture = () => {
+    setScanState((prev) => ({
+      ...prev,
+      isCapturing: false,
+      captureFinished: true,
+      captureStatus: 'finished',
+    }));
+  };
+
+  const startProcessing = () => {
+    setScanState((prev) => ({
+      ...prev,
+      isProcessing: true,
+      processingStatus: 'disconnected',
+      sceneReady: false,
+      reconstructionStatus: 'waiting',
+    }));
   };
 
   const loadDemoSample = () => {
-    const sampleSession: ScanSession = {
-      id: 'DEMO-ROOM-01',
-      name: 'Sample Living Room & Workspace',
-      roomType: 'Workspace / Lab',
-      createdAt: new Date().toLocaleDateString(),
-      status: 'ready',
-      frameCount: 480,
-      keyframeCount: 120,
-      pointCount: 164280,
-      meshFacetCount: 1482000,
-    };
-    setActiveSession(sampleSession);
     setIsDemoSampleLoaded(true);
-    setProcessingSteps([
-      {
-        id: 'step-1',
-        name: '1. Camera & Scene Setup',
-        simpleDescription: 'Tracking camera movement and finding matching points',
-        technicalName: 'Feature Tracking & Sparse SfM',
-        status: 'completed',
-        progressPercent: 100,
-      },
-      {
-        id: 'step-2',
-        name: '2. 3D Room Reconstruction',
-        simpleDescription: 'Building room walls, floor, and furniture shapes',
-        technicalName: 'TSDF Volumetric Fusion',
-        status: 'completed',
-        progressPercent: 100,
-      },
-      {
-        id: 'step-3',
-        name: '3. Clean Moving Objects',
-        simpleDescription: 'Detecting and removing people or moving items from static room',
-        technicalName: 'Dynamic Entity Segmentation',
-        status: 'completed',
-        progressPercent: 100,
-      },
-      {
-        id: 'step-4',
-        name: '4. Fill Missing Areas',
-        simpleDescription: 'Intelligently completing areas behind furniture or unreached spots',
-        technicalName: 'Observation-Aware Diffusion Prior',
-        status: 'waiting',
-        progressPercent: 0,
-      },
-    ]);
-    setRoomCoverage({
-      isCalculated: true,
-      overallCoveragePercent: 84.6,
-      seenPercent: 78.2,
-      partiallySeenPercent: 12.8,
-      unseenPercent: 9.0,
-      sectors: [
-        { name: 'Floor Plane', status: 'sufficient', coveragePercent: 96.4 },
-        { name: 'Main Wall & Desk', status: 'sufficient', coveragePercent: 91.8 },
-        { name: 'Side Shelving', status: 'partial', coveragePercent: 76.5 },
-        { name: 'Ceiling', status: 'sufficient', coveragePercent: 88.0 },
-        { name: 'North-West Blind Corner', status: 'unseen', coveragePercent: 38.4 },
-      ],
-      unseenAreaAlerts: ['North-West corner behind desk has unseen areas.'],
-    });
-    setMovingObjects([
-      {
-        id: 'DYN-01',
-        label: 'Walking Person',
-        confidence: 0.98,
-        status: 'filtered_out',
-        frameRange: 'Frames #140–#1820',
-        filteredPointCount: 26400,
-        boundingCoords: { x: 1.2, y: 0.0, z: -2.4, w: 0.6, h: 1.8, d: 0.5 },
-      },
-      {
-        id: 'DYN-02',
-        label: 'Moved Chair',
-        confidence: 0.94,
-        status: 'filtered_out',
-        frameRange: 'Frames #320–#2800',
-        filteredPointCount: 11200,
-        boundingCoords: { x: -0.8, y: 0.0, z: -1.6, w: 0.7, h: 0.9, d: 0.7 },
-      },
+    setScanState((prev) => ({
+      ...prev,
+      sceneReady: true,
+      coverageReady: true,
+      reconstructionStatus: 'ready',
+      coverageStatus: 'ready',
+    }));
+    setRoomCoverage([
+      { id: '1', name: 'Main North Wall', category: 'seen', status: 'Captured' },
+      { id: '2', name: 'Center Living Area Floor', category: 'seen', status: 'Captured' },
+      { id: '3', name: 'South Dining Corner', category: 'low_views', status: 'Limited angles' },
+      { id: '4', name: 'Behind Bookshelf Nook', category: 'unseen', status: 'Occluded / Missing' },
     ]);
     setGuidanceTips([
       {
-        id: 'tip-1',
-        type: 'direction',
-        title: 'Unseen Corner Detected',
-        message: 'Tilt camera downwards towards the North-West corner behind the table to complete the scan.',
+        id: '1',
+        title: 'South Dining Corner',
+        description: 'Sweep camera 30 degrees right to resolve occlusion.',
+        severity: 'medium',
       },
     ]);
-    setCurrentScreen('workspace');
   };
 
-  const runReconstruction = () => {
-    if (!activeSession) return;
-    setProcessingSteps((prev) =>
-      prev.map((step, idx) =>
-        idx === 0
-          ? { ...step, status: 'completed', progressPercent: 100 }
-          : idx === 1
-          ? { ...step, status: 'processing', progressPercent: 65 }
-          : step
-      )
-    );
+  const resetAll = () => {
+    if (scanState.sceneReady && activeSession) {
+      setPreviousScans((prev) => [
+        {
+          id: activeSession.id,
+          name: activeSession.name,
+          date: new Date().toLocaleDateString(),
+          roomType: activeSession.roomType,
+          createdAt: activeSession.createdAt,
+        },
+        ...prev,
+      ]);
+    }
+    setScanState(defaultScanState);
+    setIsDemoSampleLoaded(false);
+    setRoomCoverage(null);
+    setMovingObjects([]);
+    setGuidanceTips([]);
   };
 
   const resetToHome = () => {
-    if (activeSession && activeSession.status === 'ready' && !previousScans.some((s) => s.id === activeSession.id)) {
-      setPreviousScans((prev) => [activeSession, ...prev]);
-    }
-    setCurrentScreen('home');
+    resetAll();
   };
 
   return (
     <ScanContext.Provider
       value={{
-        currentScreen,
-        setCurrentScreen,
+        scanState,
+        setScanState,
+        activeSession,
+        setActiveSession,
+        previousScans,
         viewportMode,
         setViewportMode,
         phoneConnection,
         setPhoneConnection,
-        activeSession,
-        setActiveSession,
-        previousScans,
         processingSteps,
-        setProcessingSteps,
         roomCoverage,
-        setRoomCoverage,
         movingObjects,
-        setMovingObjects,
         guidanceTips,
-        setGuidanceTips,
-        hardwareInfo,
         isDemoSampleLoaded,
-        loadDemoSample,
+        currentScreen,
+        setCurrentScreen,
         startNewScan,
-        runReconstruction,
+        connectPhone,
+        startCapture,
+        finishCapture,
+        startProcessing,
+        loadDemoSample,
+        runReconstruction: loadDemoSample,
         resetToHome,
+        resetAll,
       }}
     >
       {children}
@@ -288,3 +282,4 @@ export const useScanContext = () => {
   }
   return context;
 };
+

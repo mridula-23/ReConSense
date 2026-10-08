@@ -1,21 +1,18 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import {
-  Camera,
   RotateCcw,
   Grid,
   Sparkles,
-  UserX,
   PieChart,
   Box,
   Layers,
 } from 'lucide-react';
-import type { ViewportMode, MovingObject } from '../types/dashboard';
-import { useScanContext } from '../context/ScanContext';
+import { useScanContext, type ViewportMode, type DynamicObject } from '../context/ScanContext';
 
 interface SceneViewerProps {
   mode: ViewportMode;
   onModeChange: (mode: ViewportMode) => void;
-  movingObjects: MovingObject[];
+  movingObjects?: DynamicObject[];
 }
 
 interface Point3D {
@@ -31,9 +28,8 @@ interface Point3D {
 export const SceneViewer: React.FC<SceneViewerProps> = ({
   mode,
   onModeChange,
-  movingObjects,
 }) => {
-  const { isDemoSampleLoaded, loadDemoSample, activeSession } = useScanContext();
+  const { isDemoSampleLoaded, loadDemoSample, scanState } = useScanContext();
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -46,13 +42,12 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
 
   const [showGrid, setShowGrid] = useState(true);
   const [showTrajectory, setShowTrajectory] = useState(true);
-  const [showBBoxes, setShowBBoxes] = useState(true);
 
   const pointsRef = useRef<Point3D[]>([]);
 
-  // Generate synthetic points only if demo sample or processed data exists
+  // Generate synthetic points ONLY if demo sample mode is explicitly activated
   useEffect(() => {
-    if (!isDemoSampleLoaded && (!activeSession || activeSession.frameCount === 0)) {
+    if (!isDemoSampleLoaded) {
       pointsRef.current = [];
       return;
     }
@@ -68,109 +63,131 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
           y: -1.5,
           z: z + noise,
           r: 45,
-          g: 70,
-          b: 105,
+          g: 55,
+          b: 70,
           type: 'observed',
         });
       }
     }
 
-    // 2. North Wall
-    for (let x = -3.5; x <= 3.5; x += 0.2) {
-      for (let y = -1.5; y <= 1.8; y += 0.2) {
-        const isNorthWestHole = x < -2.2 && y < -0.2;
+    // 2. Room Walls
+    for (let y = -1.5; y <= 2.2; y += 0.25) {
+      for (let x = -3.5; x <= 3.5; x += 0.25) {
+        // Back wall
         points.push({
           x,
           y,
-          z: -3.5 + (Math.random() - 0.5) * 0.04,
-          r: isNorthWestHole ? 220 : 65,
-          g: isNorthWestHole ? 55 : 125,
-          b: isNorthWestHole ? 55 : 175,
-          type: isNorthWestHole ? 'unobserved' : 'observed',
-        });
-      }
-    }
-
-    // 3. East Wall
-    for (let z = -3.5; z <= 3.5; z += 0.22) {
-      for (let y = -1.5; y <= 1.8; y += 0.22) {
-        points.push({
-          x: 3.5 + (Math.random() - 0.5) * 0.04,
-          y,
-          z,
+          z: -3.5,
           r: 60,
-          g: 115,
-          b: 160,
-          type: 'observed',
+          g: 75,
+          b: 95,
+          type: x > 1.5 && y < 0 ? 'unobserved' : 'observed',
         });
-      }
-    }
-
-    // 4. Lab Workbench / Table
-    for (let x = -2.0; x <= -0.2; x += 0.14) {
-      for (let z = -1.5; z <= 0.8; z += 0.14) {
-        points.push({
-          x,
-          y: -0.6 + (Math.random() - 0.5) * 0.02,
-          z,
-          r: 25,
-          g: 165,
-          b: 195,
-          type: 'observed',
-        });
-      }
-    }
-
-    // 5. Dynamic Entities
-    for (let i = 0; i < 280; i++) {
-      const theta = Math.random() * Math.PI * 2;
-      const radius = Math.random() * 0.35;
-      const y = -1.5 + Math.random() * 1.8;
-      points.push({
-        x: 1.2 + Math.cos(theta) * radius,
-        y,
-        z: -2.4 + Math.sin(theta) * radius,
-        r: 244,
-        g: 63,
-        b: 94,
-        type: 'dynamic',
-      });
-    }
-
-    for (let i = 0; i < 150; i++) {
-      const theta = Math.random() * Math.PI * 2;
-      const radius = Math.random() * 0.4;
-      const y = -1.5 + Math.random() * 0.85;
-      points.push({
-        x: -0.8 + Math.cos(theta) * radius,
-        y,
-        z: -1.6 + Math.sin(theta) * radius,
-        r: 244,
-        g: 63,
-        b: 94,
-        type: 'dynamic',
-      });
-    }
-
-    // 6. Inpainted Region
-    for (let x = -3.2; x <= -2.0; x += 0.16) {
-      for (let y = -1.4; y <= -0.1; y += 0.16) {
+        // Front wall
         points.push({
           x,
           y,
-          z: -3.3 + (Math.random() - 0.5) * 0.04,
-          r: 129,
-          g: 140,
-          b: 248,
-          type: 'inpainted',
+          z: 3.5,
+          r: 50,
+          g: 65,
+          b: 80,
+          type: 'observed',
+        });
+      }
+      for (let z = -3.5; z <= 3.5; z += 0.25) {
+        // Left wall
+        points.push({
+          x: -3.5,
+          y,
+          z,
+          r: 55,
+          g: 70,
+          b: 90,
+          type: 'observed',
+        });
+        // Right wall
+        points.push({
+          x: 3.5,
+          y,
+          z,
+          r: 55,
+          g: 70,
+          b: 90,
+          type: z > 1.0 ? 'unobserved' : 'observed',
+        });
+      }
+    }
+
+    // 3. Central Table
+    for (let x = -1.2; x <= 1.2; x += 0.12) {
+      for (let z = -0.8; z <= 0.8; z += 0.12) {
+        points.push({
+          x,
+          y: -0.6,
+          z,
+          r: 160,
+          g: 130,
+          b: 95,
+          type: 'observed',
         });
       }
     }
 
     pointsRef.current = points;
-  }, [isDemoSampleLoaded, activeSession]);
+  }, [isDemoSampleLoaded]);
 
-  // Projection math
+  // Handle Drag / Pan / Rotation
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    setDragStart({ x: e.clientX, y: e.clientY });
+  };
+
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent) => {
+      if (!isDragging) return;
+
+      const dx = e.clientX - dragStart.x;
+      const dy = e.clientY - dragStart.y;
+
+      if (e.buttons === 1) {
+        // Left Click: Orbit / Rotate
+        setRotation((prev) => ({
+          pitch: Math.max(-1.4, Math.min(1.4, prev.pitch - dy * 0.008)),
+          yaw: prev.yaw + dx * 0.008,
+        }));
+      } else if (e.buttons === 2 || e.buttons === 4) {
+        // Right / Middle Click: Pan
+        setPan((prev) => ({
+          x: prev.x + dx * 0.005,
+          y: prev.y - dy * 0.005,
+        }));
+      }
+
+      setDragStart({ x: e.clientX, y: e.clientY });
+    },
+    [isDragging, dragStart]
+  );
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  // Zoom on wheel
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const zoomFactor = e.deltaY < 0 ? 1.08 : 0.92;
+      setZoom((prev) => Math.max(0.3, Math.min(3.5, prev * zoomFactor)));
+    };
+
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, []);
+
+  // Projection Helper
   const project = useCallback(
     (
       x: number,
@@ -179,72 +196,63 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
       width: number,
       height: number
     ): { x: number; y: number; z: number; visible: boolean } => {
-      const px = x + pan.x * 0.01;
-      const py = y - pan.y * 0.01;
-      const pz = z;
+      const cx = x + pan.x;
+      const cy = y + pan.y;
+      const cz = z;
 
+      // Yaw rotation
       const cosY = Math.cos(rotation.yaw);
       const sinY = Math.sin(rotation.yaw);
-      const x1 = px * cosY - pz * sinY;
-      const z1 = px * sinY + pz * cosY;
+      const x1 = cx * cosY - cz * sinY;
+      const z1 = cx * sinY + cz * cosY;
 
+      // Pitch rotation
       const cosP = Math.cos(rotation.pitch);
       const sinP = Math.sin(rotation.pitch);
-      const y2 = py * cosP - z1 * sinP;
-      const z2 = py * sinP + z1 * cosP;
+      const y2 = cy * cosP - z1 * sinP;
+      const z2 = cy * sinP + z1 * cosP;
 
-      const dist = 7.0 / zoom;
-      const camZ = z2 + dist;
+      const cameraDistance = 7.5 / zoom;
+      const zEff = z2 + cameraDistance;
 
-      if (camZ <= 0.1) {
-        return { x: 0, y: 0, z: camZ, visible: false };
+      if (zEff <= 0.2) {
+        return { x: 0, y: 0, z: zEff, visible: false };
       }
 
-      const fov = 440;
-      const projX = width / 2 + (x1 * fov) / camZ;
-      const projY = height / 2 - (y2 * fov) / camZ;
+      const fov = 480;
+      const px = width / 2 + (x1 * fov) / zEff;
+      const py = height / 2 - (y2 * fov) / zEff;
 
-      return { x: projX, y: projY, z: camZ, visible: true };
+      return {
+        x: px,
+        y: py,
+        z: zEff,
+        visible: px >= -50 && px <= width + 50 && py >= -50 && py <= height + 50,
+      };
     },
-    [pan, rotation, zoom]
+    [rotation, zoom, pan]
   );
 
-  // Render loop
+  // Render Canvas Loop
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-
-    let animId: number | null = null;
 
     const render = () => {
       const width = canvas.width;
       const height = canvas.height;
 
-      // Dark workspace background
       ctx.fillStyle = '#05070c';
       ctx.fillRect(0, 0, width, height);
 
-      // Vignette
-      const gradient = ctx.createRadialGradient(
-        width / 2,
-        height / 2,
-        width * 0.1,
-        width / 2,
-        height / 2,
-        width * 0.7
-      );
-      gradient.addColorStop(0, 'rgba(15, 23, 42, 0.4)');
-      gradient.addColorStop(1, 'rgba(5, 7, 12, 0.95)');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, width, height);
-
-      // Ground Wireframe Grid
+      // Render 3D Ground Grid
       if (showGrid) {
         ctx.lineWidth = 1;
-        const gridSize = 4.0;
-        const step = 0.8;
+        const gridSize = 4;
+        const step = 0.5;
 
         for (let i = -gridSize; i <= gridSize; i += step) {
           const p1 = project(i, -1.5, -gridSize, width, height);
@@ -271,7 +279,7 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
         }
       }
 
-      // Render Camera Path if data exists
+      // Render Camera Path if 3D points exist
       if (showTrajectory && pointsRef.current.length > 0) {
         const trajectoryPoints = [
           { x: 2.2, y: 0.1, z: 2.5 },
@@ -303,107 +311,12 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
           }
         });
         ctx.stroke();
-
-        trajectoryPoints.forEach((pt, index) => {
-          const pr = project(pt.x, pt.y, pt.z, width, height);
-          if (pr.visible) {
-            ctx.fillStyle = index === trajectoryPoints.length - 1 ? '#38bdf8' : 'rgba(56, 189, 248, 0.85)';
-            ctx.beginPath();
-            ctx.arc(pr.x, pr.y, index === trajectoryPoints.length - 1 ? 4 : 2, 0, Math.PI * 2);
-            ctx.fill();
-
-            if (index === trajectoryPoints.length - 1) {
-              ctx.strokeStyle = '#38bdf8';
-              ctx.lineWidth = 1.2;
-              ctx.beginPath();
-              ctx.arc(pr.x, pr.y, 7, 0, Math.PI * 2);
-              ctx.stroke();
-            }
-          }
-        });
-      }
-
-      // 3D Moving Object Bounding Boxes
-      if (showBBoxes && movingObjects.length > 0 && (mode === 'dynamic_filter' || mode === 'point_cloud' || mode === 'dense_mesh')) {
-        movingObjects.forEach((obj) => {
-          if (!obj.boundingCoords) return;
-          const { x, y, z, w, h, d } = obj.boundingCoords;
-          const halfW = w / 2;
-          const halfD = d / 2;
-
-          const corners = [
-            { x: x - halfW, y: y, z: z - halfD },
-            { x: x + halfW, y: y, z: z - halfD },
-            { x: x + halfW, y: y, z: z + halfD },
-            { x: x - halfW, y: y, z: z + halfD },
-            { x: x - halfW, y: y + h, z: z - halfD },
-            { x: x + halfW, y: y + h, z: z - halfD },
-            { x: x + halfW, y: y + h, z: z + halfD },
-            { x: x - halfW, y: y + h, z: z + halfD },
-          ];
-
-          const projected = corners.map((c) => project(c.x, c.y, c.z, width, height));
-
-          ctx.strokeStyle = 'rgba(244, 63, 94, 0.8)';
-          ctx.lineWidth = 1.1;
-          ctx.setLineDash([3, 3]);
-
-          const edges = [
-            [0, 1], [1, 2], [2, 3], [3, 0],
-            [4, 5], [5, 6], [6, 7], [7, 4],
-            [0, 4], [1, 5], [2, 6], [3, 7],
-          ];
-
-          edges.forEach(([i, j]) => {
-            if (projected[i].visible && projected[j].visible) {
-              ctx.beginPath();
-              ctx.moveTo(projected[i].x, projected[i].y);
-              ctx.lineTo(projected[j].x, projected[j].y);
-              ctx.stroke();
-            }
-          });
-          ctx.setLineDash([]);
-
-          const topCenter = project(x, y + h + 0.15, z, width, height);
-          if (topCenter.visible) {
-            ctx.fillStyle = 'rgba(8, 11, 17, 0.9)';
-            ctx.strokeStyle = 'rgba(244, 63, 94, 0.4)';
-            ctx.lineWidth = 1;
-            const text = obj.confidence ? `${obj.label} (${(obj.confidence * 100).toFixed(0)}%)` : obj.label;
-            ctx.font = '10px "JetBrains Mono", monospace';
-            const metrics = ctx.measureText(text);
-            const pad = 4;
-            ctx.fillRect(
-              topCenter.x - metrics.width / 2 - pad,
-              topCenter.y - 12,
-              metrics.width + pad * 2,
-              15
-            );
-            ctx.strokeRect(
-              topCenter.x - metrics.width / 2 - pad,
-              topCenter.y - 12,
-              metrics.width + pad * 2,
-              15
-            );
-            ctx.fillStyle = '#fb7185';
-            ctx.fillText(text, topCenter.x - metrics.width / 2, topCenter.y - 1);
-          }
-        });
       }
 
       // Render Point Cloud
       const pts = pointsRef.current;
       pts.forEach((p) => {
-        if (mode === 'dynamic_filter' && p.type !== 'dynamic') {
-          const pr = project(p.x, p.y, p.z, width, height);
-          if (pr.visible) {
-            ctx.fillStyle = 'rgba(40, 55, 75, 0.2)';
-            ctx.fillRect(pr.x, pr.y, 1.1, 1.1);
-          }
-          return;
-        }
-
-        if (mode === 'coverage_heatmap') {
+        if (mode === 'coverage') {
           const pr = project(p.x, p.y, p.z, width, height);
           if (pr.visible) {
             ctx.fillStyle = p.type === 'unobserved' ? '#ef4444' : '#10b981';
@@ -412,19 +325,10 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
           return;
         }
 
-        if (mode === 'ai_completed') {
-          const pr = project(p.x, p.y, p.z, width, height);
-          if (pr.visible) {
-            ctx.fillStyle = p.type === 'inpainted' ? '#a855f7' : `rgb(${p.r}, ${p.g}, ${p.b})`;
-            ctx.fillRect(pr.x, pr.y, p.type === 'inpainted' ? 2.0 : 1.4, p.type === 'inpainted' ? 2.0 : 1.4);
-          }
-          return;
-        }
-
         const pr = project(p.x, p.y, p.z, width, height);
         if (pr.visible) {
           ctx.fillStyle = `rgb(${p.r}, ${p.g}, ${p.b})`;
-          ctx.fillRect(pr.x, pr.y, mode === 'dense_mesh' ? 1.8 : 1.3, mode === 'dense_mesh' ? 1.8 : 1.3);
+          ctx.fillRect(pr.x, pr.y, mode === 'shaded' ? 1.8 : 1.3, mode === 'shaded' ? 1.8 : 1.3);
         }
       });
 
@@ -478,58 +382,20 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
     render();
 
     const handleResize = () => {
-      if (canvas && containerRef.current) {
-        canvas.width = containerRef.current.clientWidth;
-        canvas.height = containerRef.current.clientHeight;
+      if (containerRef.current && canvasRef.current) {
+        canvasRef.current.width = containerRef.current.clientWidth;
+        canvasRef.current.height = containerRef.current.clientHeight;
         render();
       }
     };
 
-    const handleWheelEvent = (e: WheelEvent) => {
-      e.preventDefault();
-      const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
-      setZoom((prev) => Math.max(0.4, Math.min(3.5, prev * zoomFactor)));
-    };
-
     handleResize();
     window.addEventListener('resize', handleResize);
-    canvas.addEventListener('wheel', handleWheelEvent, { passive: false });
 
     return () => {
       window.removeEventListener('resize', handleResize);
-      canvas.removeEventListener('wheel', handleWheelEvent);
-      if (animId !== null) cancelAnimationFrame(animId);
     };
-  }, [mode, project, rotation, zoom, showGrid, showTrajectory, showBBoxes, movingObjects]);
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    setIsDragging(true);
-    setDragStart({ x: e.clientX, y: e.clientY });
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
-    const dx = e.clientX - dragStart.x;
-    const dy = e.clientY - dragStart.y;
-
-    if (e.buttons === 1) {
-      setRotation((prev) => ({
-        yaw: prev.yaw + dx * 0.007,
-        pitch: Math.max(-1.4, Math.min(1.4, prev.pitch + dy * 0.007)),
-      }));
-    } else if (e.buttons === 2 || e.shiftKey) {
-      setPan((prev) => ({
-        x: prev.x + dx * 0.4,
-        y: prev.y + dy * 0.4,
-      }));
-    }
-
-    setDragStart({ x: e.clientX, y: e.clientY });
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
+  }, [project, showGrid, showTrajectory, mode, rotation, zoom, pan]);
 
   const resetView = () => {
     setRotation({ pitch: 0.38, yaw: 0.75 });
@@ -538,14 +404,13 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
   };
 
   const modeButtons: { mode: ViewportMode; label: string; icon: React.ComponentType<{ size?: number }> }[] = [
-    { mode: 'point_cloud', label: 'Camera Points', icon: Box },
-    { mode: 'dense_mesh', label: '3D Room', icon: Layers },
-    { mode: 'coverage_heatmap', label: 'Coverage', icon: PieChart },
-    { mode: 'dynamic_filter', label: 'Moving Objects', icon: UserX },
-    { mode: 'ai_completed', label: 'Filled Areas', icon: Sparkles },
+    { mode: 'shaded', label: '3D Room', icon: Layers },
+    { mode: 'wireframe', label: 'Wireframe', icon: Grid },
+    { mode: 'pointcloud', label: 'Camera Points', icon: Box },
+    { mode: 'coverage', label: 'Coverage', icon: PieChart },
   ];
 
-  const has3DContent = isDemoSampleLoaded || (activeSession && (activeSession.pointCount || 0) > 0);
+  const has3DContent = isDemoSampleLoaded || scanState.sceneReady;
 
   return (
     <div
@@ -640,13 +505,13 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
               gap: '4px',
             }}
           >
-            <Grid size={14} />
+            <Grid size={13} />
             <span style={{ fontSize: '10.5px' }}>Grid</span>
           </button>
 
           <button
             onClick={() => setShowTrajectory(!showTrajectory)}
-            title="Toggle Camera Path"
+            title="Toggle Trajectory"
             style={{
               padding: '5px 7px',
               borderRadius: 'var(--radius-sm)',
@@ -657,25 +522,7 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
               gap: '4px',
             }}
           >
-            <Camera size={14} />
-            <span style={{ fontSize: '10.5px' }}>Path</span>
-          </button>
-
-          <button
-            onClick={() => setShowBBoxes(!showBBoxes)}
-            title="Toggle Moving Object Boxes"
-            style={{
-              padding: '5px 7px',
-              borderRadius: 'var(--radius-sm)',
-              color: showBBoxes ? 'var(--accent-rose)' : 'var(--text-muted)',
-              fontSize: '11px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-            }}
-          >
-            <UserX size={14} />
-            <span style={{ fontSize: '10.5px' }}>Objects</span>
+            <span style={{ fontSize: '10.5px' }}>Camera Path</span>
           </button>
 
           <div style={{ height: '14px', width: '1px', backgroundColor: 'var(--border-subtle)' }} />
@@ -742,12 +589,9 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
           >
             <Box size={32} style={{ color: 'var(--accent-cyan)' }} />
             <div>
-              <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                Waiting for Room Video
+              <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                Your 3D scene will appear here after reconstruction.
               </div>
-              <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px', lineHeight: 1.45 }}>
-                Record a video with your mobile camera or upload an indoor room clip to generate this interactive 3D scene.
-              </p>
             </div>
 
             <button
@@ -766,7 +610,7 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
               }}
             >
               <Sparkles size={14} />
-              <span>Load Sample Demo Room</span>
+              <span>Preview Demo Room</span>
             </button>
           </div>
         </div>
@@ -785,7 +629,7 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
           pointerEvents: 'none',
         }}
       >
-        {/* Coordinates HUD */}
+        {/* Controls HUD */}
         <div
           className="hud-panel font-mono"
           style={{
@@ -798,20 +642,12 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
           }}
         >
           <div>
-            <span style={{ color: 'var(--text-muted)' }}>PITCH:</span>{' '}
-            <span style={{ color: 'var(--text-primary)' }}>{((rotation.pitch * 180) / Math.PI).toFixed(1)}°</span>
-          </div>
-          <div>
-            <span style={{ color: 'var(--text-muted)' }}>YAW:</span>{' '}
-            <span style={{ color: 'var(--text-primary)' }}>{((rotation.yaw * 180) / Math.PI).toFixed(1)}°</span>
-          </div>
-          <div>
-            <span style={{ color: 'var(--text-muted)' }}>ZOOM:</span>{' '}
-            <span style={{ color: 'var(--text-primary)' }}>{zoom.toFixed(2)}x</span>
+            <span style={{ color: 'var(--text-muted)' }}>CONTROLS:</span>{' '}
+            <span style={{ color: 'var(--text-primary)' }}>Drag to Rotate • Scroll to Zoom</span>
           </div>
         </div>
 
-        {/* Viewport Telemetry HUD */}
+        {/* Viewport Status HUD */}
         <div
           className="hud-panel font-mono"
           style={{
@@ -824,15 +660,9 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
           }}
         >
           <div>
-            <span style={{ color: 'var(--text-muted)' }}>3D MESH:</span>{' '}
-            <span style={{ color: has3DContent ? 'var(--accent-cyan)' : 'var(--text-muted)', fontWeight: 600 }}>
-              {has3DContent ? (mode === 'dense_mesh' ? '1.48M facets' : '164.2k pts') : 'Waiting for scan'}
-            </span>
-          </div>
-          <div>
-            <span style={{ color: 'var(--text-muted)' }}>STATUS:</span>{' '}
+            <span style={{ color: 'var(--text-muted)' }}>SCENE:</span>{' '}
             <span style={{ color: has3DContent ? 'var(--accent-emerald)' : 'var(--text-muted)', fontWeight: 600 }}>
-              {has3DContent ? 'Interactive' : 'Standby'}
+              {has3DContent ? 'Interactive' : 'Waiting for scan data'}
             </span>
           </div>
         </div>
