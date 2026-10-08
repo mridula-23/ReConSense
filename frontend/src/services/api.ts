@@ -58,6 +58,87 @@ export interface ReconstructionPointsResponse {
   points: ReconstructedPoint[];
 }
 
+export interface PairingInfoResponse {
+  lan_ip: string | null;
+  available: boolean;
+  backend_port: number;
+  frontend_port: number;
+}
+
+export interface PairingSessionResponse {
+  session_id: string;
+  token: string;
+  status: 'waiting' | 'connecting' | 'connected' | 'expired' | 'failed';
+  lan_ip: string | null;
+  qr_url: string;
+  created_at: number;
+  expires_at: number;
+  expires_in: number;
+  device_info: string | null;
+  connected_at: number | null;
+}
+
+export const fetchPairingInfo = async (): Promise<PairingInfoResponse> => {
+  const response = await fetch(`${API_BASE_URL}/api/pairing/info`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch local network pairing info');
+  }
+  return response.json();
+};
+
+export const createPairingSession = async (
+  sessionId?: string,
+  clientPort: number = window.location.port ? parseInt(window.location.port, 10) : 5173
+): Promise<PairingSessionResponse> => {
+  const query = new URLSearchParams();
+  if (sessionId) query.append('session_id', sessionId);
+  query.append('client_port', clientPort.toString());
+
+  const response = await fetch(`${API_BASE_URL}/api/pairing/create?${query.toString()}`, {
+    method: 'POST',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to create pairing session');
+  }
+  return response.json();
+};
+
+export const fetchPairingStatus = async (sessionId: string): Promise<PairingSessionResponse> => {
+  const response = await fetch(`${API_BASE_URL}/api/pairing/status/${sessionId}`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch pairing status');
+  }
+  return response.json();
+};
+
+export const connectPhoneDevice = async (
+  sessionId: string,
+  token: string,
+  deviceInfo: string = 'Smartphone Camera'
+): Promise<{ status: string; session_id: string; message: string; device_info: string }> => {
+  const response = await fetch(`${API_BASE_URL}/api/pairing/connect`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      session_id: sessionId,
+      token,
+      device_info: deviceInfo,
+    }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ detail: 'Connection failed' }));
+    throw new Error(err.detail || 'Connection failed');
+  }
+  return response.json();
+};
+
+export const getPairingWebSocketUrl = (sessionId: string): string => {
+  const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  // If API_BASE_URL has a specific host, use it; otherwise use window.location.hostname:8000
+  const host = window.location.hostname;
+  return `${wsProtocol}//${host}:8000/ws/pairing/${sessionId}`;
+};
+
 export const checkBackendHealth = async () => {
   try {
     const response = await fetch(`${API_BASE_URL}/api/health`);

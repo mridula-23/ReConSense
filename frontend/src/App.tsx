@@ -16,6 +16,8 @@ import { GuidancePage } from './pages/GuidancePage';
 import { RefinePage } from './pages/RefinePage';
 import { ResultPage } from './pages/ResultPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { MobileConnectPage } from './pages/MobileConnectPage';
+import { MobileCapturePage } from './pages/MobileCapturePage';
 import './App.css';
 
 export function App() {
@@ -23,6 +25,11 @@ export function App() {
     <ScanProvider>
       <BrowserRouter>
         <Routes>
+          {/* Mobile phone pairing & streaming standalone routes */}
+          <Route path="/mobile/connect" element={<MobileConnectPage />} />
+          <Route path="/mobile/capture" element={<MobileCapturePage />} />
+
+          {/* Desktop Web Application Shell */}
           <Route element={<AppShell />}>
             <Route path="/" element={<HomePage />} />
             <Route path="/reconsense" element={<ReConSenseModePage />} />

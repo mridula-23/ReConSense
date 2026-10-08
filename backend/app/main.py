@@ -1,5 +1,6 @@
-from fastapi import FastAPI, UploadFile, File, Query, HTTPException
+from fastapi import FastAPI, UploadFile, File, Query, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from typing import Optional
 from app.services.video_processor import process_uploaded_video, get_session_status
 from app.services.reconstruction import (
@@ -8,25 +9,117 @@ from app.services.reconstruction import (
     get_reconstruction_result,
     get_reconstruction_points,
 )
+from app.services.pairing import (
+    get_lan_ip,
+    create_pairing_session,
+    get_pairing_session,
+    connect_phone_device,
+    register_websocket,
+    unregister_websocket,
+)
 
 app = FastAPI(title="ReConSense Backend")
 
-# Enable CORS for local frontend development
+# Enable CORS for local and LAN mobile development
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
+class ConnectDeviceRequest(BaseModel):
+    session_id: str
+    token: str
+    device_info: Optional[str] = "Smartphone Camera"
+
+
 @app.get("/api/health")
 async def health_check():
     return {
         "status": "ok",
-        "service": "ReConSense backend"
+        "service": "ReConSense backend",
+        "lan_ip": get_lan_ip(),
     }
+
+
+# --- Phone Pairing & Network Endpoints ---
+
+@app.get("/api/pairing/info")
+async def pairing_info():
+    """
+    Returns the host machine's active local network IPv4 address for QR pairing.
+    """
+    ip = get_lan_ip()
+    return {
+        "lan_ip": ip,
+        "available": ip is not None,
+        "backend_port": 8000,
+        "frontend_port": 5173,
+    }
+
+
+@app.post("/api/pairing/create")
+async def create_pairing(
+    session_id: Optional[str] = Query(None),
+    client_port: Optional[int] = Query(5173),
+):
+    """
+    Creates a pairing session with short-lived token and LAN reachable URL for mobile QR.
+    """
+    return create_pairing_session(session_id=session_id, client_port=client_port)
+
+
+@app.get("/api/pairing/status/{session_id}")
+async def pairing_status(session_id: str):
+    """
+    Returns the current pairing state (waiting, connected, expired).
+    """
+    session = get_pairing_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Pairing session not found")
+    return session
+
+
+@app.post("/api/pairing/connect")
+async def connect_device(req: ConnectDeviceRequest):
+    """
+    Mobile endpoint: validates QR pairing token and connects the mobile device to the laptop session.
+    """
+    try:
+        return await connect_phone_device(
+            session_id=req.session_id,
+            token=req.token,
+            device_info=req.device_info or "Smartphone Camera",
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.websocket("/ws/pairing/{session_id}")
+async def pairing_websocket(websocket: WebSocket, session_id: str):
+    """
+    WebSocket endpoint for laptop to receive instant push notification when phone pairs.
+    """
+    await websocket.accept()
+    register_websocket(session_id, websocket)
+    try:
+        # Send initial status
+        session = get_pairing_session(session_id)
+        if session:
+            await websocket.send_json({
+                "event": "status_update",
+                "session": session,
+            })
+        while True:
+            # Keep connection alive
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        unregister_websocket(session_id, websocket)
+    except Exception:
+        unregister_websocket(session_id, websocket)
 
 
 # --- Video Processing Endpoints ---
