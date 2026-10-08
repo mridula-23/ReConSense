@@ -58,11 +58,12 @@ async def trigger_reconstruction(
     session_id: str,
     overlap: Optional[int] = Query(10, ge=2, le=30),
     use_gpu: Optional[bool] = Query(True),
+    mode: Optional[str] = Query("reconsense"),
 ):
     """
     Starts the real COLMAP sparse 3D reconstruction pipeline for an existing session.
     """
-    return start_reconstruction(session_id, sample_overlap=overlap, use_gpu=use_gpu)
+    return start_reconstruction(session_id, sample_overlap=overlap, use_gpu=use_gpu, mode=mode)
 
 
 @app.get("/api/reconstruction/{session_id}/status")

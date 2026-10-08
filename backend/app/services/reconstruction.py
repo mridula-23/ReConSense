@@ -131,7 +131,7 @@ def parse_colmap_txt_model(model_txt_dir: str) -> Dict[str, Any]:
     }
 
 
-def _run_colmap_process(session_id: str, sample_overlap: int = 10, use_gpu: bool = True):
+def _run_colmap_process(session_id: str, sample_overlap: int = 10, use_gpu: bool = True, mode: str = "reconsense"):
     """
     Executes the real COLMAP reconstruction pipeline in a background thread.
     """
@@ -146,7 +146,7 @@ def _run_colmap_process(session_id: str, sample_overlap: int = 10, use_gpu: bool
     os.makedirs(sparse_dir, exist_ok=True)
 
     def log_message(msg: str):
-        logger.info(f"[{session_id}] {msg}")
+        logger.info(f"[{session_id}][{mode}] {msg}")
         with _recon_lock:
             if session_id in _recon_store:
                 _recon_store[session_id]["current_message"] = msg
@@ -165,6 +165,7 @@ def _run_colmap_process(session_id: str, sample_overlap: int = 10, use_gpu: bool
         with _recon_lock:
             _recon_store[session_id].update({
                 "status": "preparing",
+                "mode": mode,
                 "total_input_images": total_input_frames,
                 "colmap_executable": colmap_exe,
             })
@@ -285,6 +286,7 @@ def _run_colmap_process(session_id: str, sample_overlap: int = 10, use_gpu: bool
         result_payload = {
             "session_id": session_id,
             "status": "completed",
+            "mode": mode,
             "registered_images": parsed_model["registered_images_count"],
             "total_input_images": total_input_frames,
             "points_3d": parsed_model["points_3d_count"],
@@ -314,6 +316,7 @@ def _run_colmap_process(session_id: str, sample_overlap: int = 10, use_gpu: bool
         error_payload = {
             "session_id": session_id,
             "status": "failed",
+            "mode": mode,
             "error": str(e),
             "current_message": f"Reconstruction failed: {str(e)}",
         }
@@ -321,7 +324,7 @@ def _run_colmap_process(session_id: str, sample_overlap: int = 10, use_gpu: bool
             _recon_store[session_id] = error_payload
 
 
-def start_reconstruction(session_id: str, sample_overlap: int = 10, use_gpu: bool = True) -> Dict[str, Any]:
+def start_reconstruction(session_id: str, sample_overlap: int = 10, use_gpu: bool = True, mode: str = "reconsense") -> Dict[str, Any]:
     """
     Initializes and starts COLMAP reconstruction in a background worker thread.
     """
@@ -334,18 +337,20 @@ def start_reconstruction(session_id: str, sample_overlap: int = 10, use_gpu: boo
             return {
                 "session_id": session_id,
                 "status": _recon_store[session_id]["status"],
+                "mode": mode,
                 "message": "Reconstruction is already in progress.",
             }
 
         _recon_store[session_id] = {
             "session_id": session_id,
             "status": "preparing",
+            "mode": mode,
             "current_message": "Preparing reconstruction workspace...",
         }
 
     thread = threading.Thread(
         target=_run_colmap_process,
-        args=(session_id, sample_overlap, use_gpu),
+        args=(session_id, sample_overlap, use_gpu, mode),
         daemon=True,
     )
     thread.start()
@@ -353,6 +358,7 @@ def start_reconstruction(session_id: str, sample_overlap: int = 10, use_gpu: boo
     return {
         "session_id": session_id,
         "status": "started",
+        "mode": mode,
     }
 
 

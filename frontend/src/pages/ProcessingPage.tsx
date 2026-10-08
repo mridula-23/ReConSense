@@ -128,9 +128,13 @@ export const ProcessingPage: React.FC = () => {
     try {
       setReconstructionError(null);
       setReconstructionStage('preparing');
-      setReconstructionMessage('Initializing COLMAP reconstruction...');
+      setReconstructionMessage(
+        reconstructionMode === 'baseline'
+          ? 'Initializing Baseline COLMAP reconstruction...'
+          : 'Initializing ReConSense COLMAP reconstruction...'
+      );
 
-      await startReconstruction(sessionId);
+      await startReconstruction(sessionId, 10, true, reconstructionMode);
 
       // Start polling status
       if (pollIntervalRef.current) {

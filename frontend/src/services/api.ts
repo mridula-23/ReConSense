@@ -105,27 +105,42 @@ export const fetchSessionStatus = async (sessionId: string): Promise<VideoProces
 export const startReconstruction = async (
   sessionId: string,
   overlap = 10,
-  useGpu = true
-): Promise<{ session_id: string; status: string }> => {
-  const response = await fetch(
-    `${API_BASE_URL}/api/reconstruction/${sessionId}/start?overlap=${overlap}&use_gpu=${useGpu}`,
-    { method: 'POST' }
-  );
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({ detail: 'Failed to start reconstruction' }));
-    throw new Error(err.detail || `Server returned ${response.status}`);
+  useGpu = true,
+  mode: 'reconsense' | 'baseline' = 'reconsense'
+): Promise<{ session_id: string; status: string; mode?: string }> => {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/api/reconstruction/${sessionId}/start?overlap=${overlap}&use_gpu=${useGpu}&mode=${mode}`,
+      { method: 'POST' }
+    );
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ detail: 'Failed to start reconstruction' }));
+      throw new Error(err.detail || `Server returned ${response.status}`);
+    }
+    return response.json();
+  } catch (error) {
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new Error('Backend connection lost. Please ensure the backend server is running.');
+    }
+    throw error;
   }
-  return response.json();
 };
 
 export const fetchReconstructionStatus = async (
   sessionId: string
 ): Promise<ReconstructionStatusResponse> => {
-  const response = await fetch(`${API_BASE_URL}/api/reconstruction/${sessionId}/status`);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch reconstruction status: ${response.status}`);
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/reconstruction/${sessionId}/status`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch reconstruction status: ${response.status}`);
+    }
+    return response.json();
+  } catch (error) {
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new Error('Backend connection lost while checking reconstruction status.');
+    }
+    throw error;
   }
-  return response.json();
 };
 
 export const fetchReconstructionResult = async (
