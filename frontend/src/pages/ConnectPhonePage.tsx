@@ -14,6 +14,7 @@ import {
 import { useScanContext } from '../context/ScanContext';
 import {
   createPairingSession,
+  regeneratePairingSession,
   fetchPairingStatus,
   getPairingWebSocketUrl,
   type PairingSessionResponse,
@@ -105,6 +106,49 @@ export const ConnectPhonePage: React.FC = () => {
       setErrorMessage(msg);
     }
   }, [activeSession, scanState.sessionId, setScanState]);
+
+  // Handle explicit QR regeneration
+  const handleRegenerate = async () => {
+    setIsLoading(true);
+    setErrorMessage(null);
+    setQrDataUrl(null);
+    setConnectionStatus('waiting');
+
+    try {
+      const sessionId = activeSession?.id || scanState.sessionId || undefined;
+      const port = window.location.port ? parseInt(window.location.port, 10) : 5173;
+      const session = await regeneratePairingSession(sessionId, port);
+
+      setPairingSession(session);
+      setTimeLeft(session.expires_in || 300);
+
+      if (!session.lan_ip || !isValidQrUrl(session.qr_url)) {
+        setConnectionStatus('error');
+        setErrorMessage(
+          session.error ||
+          "Unable to determine your laptop's LAN address. Make sure Wi-Fi is enabled."
+        );
+        setIsLoading(false);
+        return;
+      }
+
+      const dataUrl = await QRCode.toDataURL(session.qr_url!, {
+        width: 220,
+        margin: 2,
+        color: {
+          dark: '#030712',
+          light: '#ffffff',
+        },
+        errorCorrectionLevel: 'M',
+      });
+      setQrDataUrl(dataUrl);
+      setIsLoading(false);
+    } catch (err: unknown) {
+      setIsLoading(false);
+      setConnectionStatus('error');
+      setErrorMessage(err instanceof Error ? err.message : 'Failed to regenerate QR code.');
+    }
+  };
 
   // Handle successful phone connection
   const handlePhoneConnected = useCallback((device: string = 'Smartphone Camera') => {
@@ -362,7 +406,7 @@ export const ConnectPhonePage: React.FC = () => {
               </div>
 
               <button
-                onClick={initPairing}
+                onClick={handleRegenerate}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -445,7 +489,7 @@ export const ConnectPhonePage: React.FC = () => {
               </div>
 
               <button
-                onClick={initPairing}
+                onClick={handleRegenerate}
                 style={{
                   display: 'flex',
                   alignItems: 'center',

@@ -119,6 +119,23 @@ export const createPairingSession = async (
   return response.json();
 };
 
+export const regeneratePairingSession = async (
+  sessionId?: string,
+  clientPort: number = window.location.port ? parseInt(window.location.port, 10) : 5173
+): Promise<PairingSessionResponse> => {
+  const query = new URLSearchParams();
+  if (sessionId) query.append('session_id', sessionId);
+  query.append('client_port', clientPort.toString());
+
+  const response = await fetch(`${getApiBaseUrl()}/api/pairing/regenerate?${query.toString()}`, {
+    method: 'POST',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to regenerate pairing session');
+  }
+  return response.json();
+};
+
 export const fetchPairingStatus = async (sessionId: string): Promise<PairingSessionResponse> => {
   const response = await fetch(`${getApiBaseUrl()}/api/pairing/status/${sessionId}`);
   if (!response.ok) {

@@ -96,18 +96,32 @@ def get_lan_ip() -> Optional[str]:
 def create_pairing_session(
     session_id: Optional[str] = None,
     client_port: int = 5173,
-    custom_lan_ip: Optional[str] = None
+    custom_lan_ip: Optional[str] = None,
+    force_new: bool = False,
 ) -> Dict[str, Any]:
     """
     Creates or refreshes a secure pairing session with a short-lived token and reachable mobile URL.
     Ensures QR URL never contains localhost or 127.0.0.1.
+    Reuses existing valid token if session already exists and is not expired (avoids double-mount invalidation).
     """
     if not session_id:
         session_id = f"sess_phone_{secrets.token_hex(4)}"
 
     lan_ip = custom_lan_ip or get_local_lan_ip()
-    token = secrets.token_urlsafe(16)
     now = time.time()
+
+    # If session already exists and is active, reuse unless forced
+    existing = _pairing_store.get(session_id)
+    if existing and not force_new and existing.get("status") in ["waiting", "connected"] and now < existing.get("expires_at", 0):
+        # Update LAN IP & QR URL if needed
+        if lan_ip:
+            existing["lan_ip"] = lan_ip
+            existing["qr_url"] = f"http://{lan_ip}:{client_port}/mobile/connect?session={session_id}&token={existing['token']}"
+            existing["status"] = existing.get("status", "waiting")
+        existing["expires_in"] = max(0, int(existing.get("expires_at", 0) - now))
+        return existing
+
+    token = secrets.token_urlsafe(16)
     expires_at = now + PAIRING_TOKEN_TTL_SECONDS
 
     # STRICT RULE: Only generate QR URL if a valid reachable LAN IP is detected
@@ -121,9 +135,14 @@ def create_pairing_session(
         status = "network_unreachable"
         error = "Unable to determine your laptop's LAN address. Make sure Wi-Fi is enabled and connected to the same network as your phone."
 
+    # Keep track of active valid tokens for this session
+    previous_tokens = existing.get("valid_tokens", []) if existing else []
+    valid_tokens = [token] + [t for t in previous_tokens if t != token][:3]
+
     session_data = {
         "session_id": session_id,
         "token": token,
+        "valid_tokens": valid_tokens,
         "status": status,
         "lan_ip": lan_ip,
         "qr_url": qr_url,
@@ -136,7 +155,7 @@ def create_pairing_session(
     }
 
     _pairing_store[session_id] = session_data
-    logger.info(f"Created pairing session {session_id} (LAN IP: {lan_ip}, Status: {status})")
+    logger.info(f"Created/Updated pairing session {session_id} (LAN IP: {lan_ip}, Status: {status})")
     return session_data
 
 
@@ -175,8 +194,9 @@ async def connect_phone_device(
         session["status"] = "expired"
         raise ValueError("This pairing QR code has expired. Please regenerate a new QR code.")
 
-    if session["token"] != token:
-        raise ValueError("Invalid pairing token.")
+    valid_tokens = session.get("valid_tokens", [session.get("token")])
+    if session.get("token") != token and token not in valid_tokens:
+        raise ValueError("Invalid pairing token. Please scan the current QR code on your laptop.")
 
     session["status"] = "connected"
     session["device_info"] = device_info

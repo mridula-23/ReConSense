@@ -71,9 +71,20 @@ async def create_pairing(
     client_port: Optional[int] = Query(5173),
 ):
     """
-    Creates a pairing session with short-lived token and LAN reachable URL for mobile QR.
+    Creates or retrieves an active pairing session with short-lived token and LAN reachable URL.
     """
-    return create_pairing_session(session_id=session_id, client_port=client_port)
+    return create_pairing_session(session_id=session_id, client_port=client_port, force_new=False)
+
+
+@app.post("/api/pairing/regenerate")
+async def regenerate_pairing(
+    session_id: Optional[str] = Query(None),
+    client_port: Optional[int] = Query(5173),
+):
+    """
+    Forces generation of a fresh QR token for an existing or new session.
+    """
+    return create_pairing_session(session_id=session_id, client_port=client_port, force_new=True)
 
 
 @app.get("/api/pairing/status/{session_id}")
