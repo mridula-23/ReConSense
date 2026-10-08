@@ -1,5 +1,10 @@
 import React, { createContext, useContext, useState } from 'react';
-import type { VideoProcessingResult } from '../services/api';
+import type {
+  VideoProcessingResult,
+  ReconstructionResultResponse,
+  ReconstructedPoint,
+  ReconstructionStatusResponse,
+} from '../services/api';
 
 export type ViewportMode = 'shaded' | 'wireframe' | 'pointcloud' | 'coverage';
 
@@ -88,6 +93,16 @@ interface ScanContextType {
   setProcessingStage: React.Dispatch<React.SetStateAction<'idle' | 'uploading' | 'processing' | 'extracting' | 'completed' | 'failed'>>;
   processingError: string | null;
   setProcessingError: React.Dispatch<React.SetStateAction<string | null>>;
+  reconstructionResult: ReconstructionResultResponse | null;
+  setReconstructionResult: React.Dispatch<React.SetStateAction<ReconstructionResultResponse | null>>;
+  reconstructionPoints: ReconstructedPoint[] | null;
+  setReconstructionPoints: React.Dispatch<React.SetStateAction<ReconstructedPoint[] | null>>;
+  reconstructionStage: ReconstructionStatusResponse['status'];
+  setReconstructionStage: React.Dispatch<React.SetStateAction<ReconstructionStatusResponse['status']>>;
+  reconstructionMessage: string;
+  setReconstructionMessage: React.Dispatch<React.SetStateAction<string>>;
+  reconstructionError: string | null;
+  setReconstructionError: React.Dispatch<React.SetStateAction<string | null>>;
   startNewScan: (name?: string, roomType?: string) => void;
   startUploadScan: (file: File, name?: string) => void;
   connectPhone: () => void;
@@ -307,6 +322,12 @@ export const ScanProvider: React.FC<{ children: React.ReactNode }> = ({ children
     ]);
   };
 
+  const [reconstructionResult, setReconstructionResult] = useState<ReconstructionResultResponse | null>(null);
+  const [reconstructionPoints, setReconstructionPoints] = useState<ReconstructedPoint[] | null>(null);
+  const [reconstructionStage, setReconstructionStage] = useState<ReconstructionStatusResponse['status']>('not_started');
+  const [reconstructionMessage, setReconstructionMessage] = useState<string>('Ready for reconstruction');
+  const [reconstructionError, setReconstructionError] = useState<string | null>(null);
+
   const resetAll = () => {
     if (uploadedVideoUrl) {
       URL.revokeObjectURL(uploadedVideoUrl);
@@ -316,6 +337,11 @@ export const ScanProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setProcessingResult(null);
     setProcessingStage('idle');
     setProcessingError(null);
+    setReconstructionResult(null);
+    setReconstructionPoints(null);
+    setReconstructionStage('not_started');
+    setReconstructionMessage('Ready for reconstruction');
+    setReconstructionError(null);
     if (scanState.sceneReady && activeSession) {
       setPreviousScans((prev) => [
         {
@@ -367,6 +393,16 @@ export const ScanProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setProcessingStage,
         processingError,
         setProcessingError,
+        reconstructionResult,
+        setReconstructionResult,
+        reconstructionPoints,
+        setReconstructionPoints,
+        reconstructionStage,
+        setReconstructionStage,
+        reconstructionMessage,
+        setReconstructionMessage,
+        reconstructionError,
+        setReconstructionError,
         startNewScan,
         startUploadScan,
         connectPhone,

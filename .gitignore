@@ -16,17 +16,19 @@ __pycache__/
 .Python
 pip-log.txt
 
+# Local tools & archives
+backend/tools/
+tools/
+*.zip
+*.tar.gz
+
 # Data and Models (Keep folder structure, ignore contents)
-data/input_videos/*
-!data/input_videos/.gitkeep
-data/frames/*
-!data/frames/.gitkeep
-data/reconstruction/*
-!data/reconstruction/.gitkeep
-data/pointcloud/*
-!data/pointcloud/.gitkeep
-data/generated/*
-!data/generated/.gitkeep
+data/
+backend/data/
+backend/test_data/
+*.db
+*.bin
+*.ply
 models/*
 !models/.gitkeep
 

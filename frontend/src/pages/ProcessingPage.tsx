@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Loader2,
@@ -10,9 +10,16 @@ import {
   FileVideo,
   AlertCircle,
   RotateCcw,
+  Box,
 } from 'lucide-react';
 import { useScanContext } from '../context/ScanContext';
-import { processVideo } from '../services/api';
+import {
+  processVideo,
+  startReconstruction,
+  fetchReconstructionStatus,
+  fetchReconstructionResult,
+  fetchReconstructionPoints,
+} from '../services/api';
 
 export const ProcessingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -27,9 +34,19 @@ export const ProcessingPage: React.FC = () => {
     processingError,
     setProcessingError,
     setActiveSession,
+    reconstructionResult,
+    setReconstructionResult,
+    setReconstructionPoints,
+    reconstructionStage,
+    setReconstructionStage,
+    reconstructionMessage,
+    setReconstructionMessage,
+    reconstructionError,
+    setReconstructionError,
   } = useScanContext();
 
   const isUpload = scanState.inputSource === 'upload';
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Automatically trigger real backend processing for uploaded video
   useEffect(() => {
@@ -91,7 +108,76 @@ export const ProcessingPage: React.FC = () => {
     };
   }, [isUpload, uploadedVideoFile]);
 
-  const handleContinue = () => {
+  // Clean up polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+    };
+  }, []);
+
+  const handleStartReconstruction = async () => {
+    const sessionId = processingResult?.session_id || scanState.sessionId;
+    if (!sessionId) {
+      setReconstructionError('No active session ID for reconstruction');
+      return;
+    }
+
+    try {
+      setReconstructionError(null);
+      setReconstructionStage('preparing');
+      setReconstructionMessage('Initializing COLMAP reconstruction...');
+
+      await startReconstruction(sessionId);
+
+      // Start polling status
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+
+      pollIntervalRef.current = setInterval(async () => {
+        try {
+          const statusRes = await fetchReconstructionStatus(sessionId);
+          setReconstructionStage(statusRes.status);
+          setReconstructionMessage(statusRes.current_message || statusRes.message || '');
+
+          if (statusRes.status === 'completed') {
+            if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+
+            // Fetch final result details and points
+            const resultData = await fetchReconstructionResult(sessionId);
+            setReconstructionResult(resultData);
+
+            try {
+              const pointsData = await fetchReconstructionPoints(sessionId);
+              setReconstructionPoints(pointsData.points || []);
+            } catch {
+              // Points might be empty if sparse failed
+            }
+
+            setScanState((prev) => ({
+              ...prev,
+              sceneReady: true,
+              reconstructionStatus: 'ready',
+            }));
+          } else if (statusRes.status === 'failed') {
+            if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+            setReconstructionError(statusRes.current_message || statusRes.message || statusRes.error || 'Reconstruction failed');
+          }
+        } catch (err) {
+          if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+          setReconstructionError(err instanceof Error ? err.message : 'Failed checking reconstruction status');
+        }
+      }, 1000);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Could not start reconstruction';
+      setReconstructionError(msg);
+      setReconstructionStage('failed');
+    }
+  };
+
+  const handleContinueToScene = () => {
     navigate('/scene');
   };
 
@@ -111,6 +197,14 @@ export const ProcessingPage: React.FC = () => {
     }
   };
 
+  const isReconstructing =
+    reconstructionStage === 'preparing' ||
+    reconstructionStage === 'extracting_features' ||
+    reconstructionStage === 'matching_features' ||
+    reconstructionStage === 'reconstructing';
+
+  const isReconstructionCompleted = reconstructionStage === 'completed';
+
   return (
     <div
       style={{
@@ -126,35 +220,38 @@ export const ProcessingPage: React.FC = () => {
       <div
         style={{
           width: '100%',
-          maxWidth: '600px',
+          maxWidth: '640px',
           background: 'var(--bg-surface)',
           border: '1px solid var(--border-subtle)',
           borderRadius: 'var(--radius-lg)',
-          padding: '30px',
+          padding: '28px',
           display: 'flex',
           flexDirection: 'column',
-          gap: '24px',
+          gap: '22px',
         }}
       >
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '14px' }}>
           <div>
             <div style={{ fontSize: '11px', color: 'var(--accent-cyan)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               Reconstruction Pipeline
             </div>
-            <h2 style={{ fontSize: '20px', fontWeight: 600, color: 'var(--text-primary)', marginTop: '2px' }}>
+            <h2 style={{ fontSize: '19px', fontWeight: 600, color: 'var(--text-primary)', marginTop: '2px' }}>
               Building Your 3D Scene
             </h2>
           </div>
 
           <button
             onClick={handleBack}
+            disabled={isReconstructing}
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
               fontSize: '12px',
-              color: 'var(--text-muted)',
+              color: isReconstructing ? 'var(--text-muted)' : 'var(--text-secondary)',
+              cursor: isReconstructing ? 'not-allowed' : 'pointer',
+              opacity: isReconstructing ? 0.5 : 1,
             }}
           >
             <ArrowLeft size={14} />
@@ -197,43 +294,55 @@ export const ProcessingPage: React.FC = () => {
               padding: '4px 8px',
               borderRadius: 'var(--radius-sm)',
               background:
-                processingStage === 'completed'
+                reconstructionStage === 'completed'
                   ? 'rgba(16, 185, 129, 0.15)'
-                  : processingStage === 'failed'
+                  : reconstructionStage === 'failed' || processingStage === 'failed'
                   ? 'rgba(244, 63, 94, 0.15)'
+                  : isReconstructing
+                  ? 'rgba(56, 189, 248, 0.15)'
+                  : processingStage === 'completed'
+                  ? 'rgba(16, 185, 129, 0.15)'
                   : 'rgba(56, 189, 248, 0.1)',
               color:
-                processingStage === 'completed'
+                reconstructionStage === 'completed'
                   ? 'var(--accent-emerald)'
-                  : processingStage === 'failed'
+                  : reconstructionStage === 'failed' || processingStage === 'failed'
                   ? 'var(--accent-rose)'
+                  : isReconstructing
+                  ? 'var(--accent-cyan)'
+                  : processingStage === 'completed'
+                  ? 'var(--accent-emerald)'
                   : 'var(--accent-cyan)',
               border: `1px solid ${
-                processingStage === 'completed'
+                reconstructionStage === 'completed'
                   ? 'rgba(16, 185, 129, 0.3)'
-                  : processingStage === 'failed'
+                  : reconstructionStage === 'failed' || processingStage === 'failed'
                   ? 'rgba(244, 63, 94, 0.3)'
                   : 'rgba(56, 189, 248, 0.2)'
               }`,
             }}
           >
-            {isUpload
-              ? processingStage === 'completed'
-                ? 'Video is ready for 3D reconstruction'
-                : processingStage === 'uploading'
-                ? 'Uploading video...'
-                : processingStage === 'processing'
-                ? 'Preparing your room video'
-                : processingStage === 'extracting'
-                ? 'Extracting useful frames'
-                : processingStage === 'failed'
-                ? 'Processing failed'
-                : 'Preparing video'
-              : 'Phone capture ready'}
+            {reconstructionStage === 'completed'
+              ? '3D reconstruction complete'
+              : isReconstructing
+              ? reconstructionMessage || 'Reconstructing 3D scene...'
+              : reconstructionStage === 'failed'
+              ? 'Reconstruction failed'
+              : processingStage === 'completed'
+              ? 'Video is ready for 3D reconstruction'
+              : processingStage === 'uploading'
+              ? 'Uploading video...'
+              : processingStage === 'processing'
+              ? 'Preparing your room video'
+              : processingStage === 'extracting'
+              ? 'Extracting useful frames'
+              : processingStage === 'failed'
+              ? 'Processing failed'
+              : 'Preparing video'}
           </div>
         </div>
 
-        {/* Error state if failed */}
+        {/* Video Processing Error */}
         {processingError && (
           <div
             style={{
@@ -272,6 +381,53 @@ export const ProcessingPage: React.FC = () => {
           </div>
         )}
 
+        {/* Reconstruction Error */}
+        {reconstructionError && (
+          <div
+            style={{
+              background: 'rgba(244, 63, 94, 0.1)',
+              border: '1px solid rgba(244, 63, 94, 0.3)',
+              borderRadius: 'var(--radius-sm)',
+              padding: '14px 16px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#fecdd3', fontSize: '13px', fontWeight: 600 }}>
+              <AlertCircle size={16} style={{ color: 'var(--accent-rose)', flexShrink: 0 }} />
+              <span>3D reconstruction could not be completed.</span>
+            </div>
+            <div style={{ color: 'var(--text-muted)', fontSize: '12px', lineHeight: 1.4 }}>
+              {reconstructionError}
+              <br />
+              <span style={{ color: 'var(--text-secondary)' }}>
+                Try a video with more movement around the room and fewer blurred frames.
+              </span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '4px' }}>
+              <button
+                onClick={handleStartReconstruction}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'rgba(244, 63, 94, 0.2)',
+                  border: '1px solid rgba(244, 63, 94, 0.4)',
+                  color: '#fff',
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                }}
+              >
+                <RotateCcw size={13} />
+                <span>Retry Reconstruction</span>
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Real Backend Frame Extraction Summary when completed */}
         {processingResult && (
           <div
@@ -279,7 +435,7 @@ export const ProcessingPage: React.FC = () => {
               background: 'rgba(16, 185, 129, 0.05)',
               border: '1px solid rgba(16, 185, 129, 0.25)',
               borderRadius: 'var(--radius-md)',
-              padding: '16px',
+              padding: '14px 16px',
               display: 'flex',
               flexDirection: 'column',
               gap: '10px',
@@ -296,7 +452,6 @@ export const ProcessingPage: React.FC = () => {
                 gridTemplateColumns: 'repeat(3, 1fr)',
                 gap: '8px',
                 fontSize: '12px',
-                paddingTop: '4px',
               }}
             >
               <div style={{ background: 'var(--bg-surface-elevated)', padding: '8px 10px', borderRadius: 'var(--radius-sm)' }}>
@@ -320,99 +475,246 @@ export const ProcessingPage: React.FC = () => {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Real COLMAP Sparse Reconstruction Result Card */}
+        {reconstructionResult && isReconstructionCompleted && (
+          <div
+            style={{
+              background: 'rgba(56, 189, 248, 0.06)',
+              border: '1px solid rgba(56, 189, 248, 0.3)',
+              borderRadius: 'var(--radius-md)',
+              padding: '16px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-cyan)', fontSize: '13px', fontWeight: 600 }}>
+              <Box size={16} />
+              <span>COLMAP Sparse 3D Reconstruction Generated</span>
+            </div>
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: '8px',
+                fontSize: '12px',
+              }}
+            >
+              <div style={{ background: 'var(--bg-surface-elevated)', padding: '8px 10px', borderRadius: 'var(--radius-sm)' }}>
+                <div style={{ color: 'var(--text-muted)', fontSize: '10.5px' }}>Registered Images</div>
+                <div style={{ color: 'var(--accent-cyan)', fontWeight: 600, marginTop: '2px' }}>
+                  {reconstructionResult.registered_images} / {reconstructionResult.total_input_images}
+                </div>
+              </div>
+
+              <div style={{ background: 'var(--bg-surface-elevated)', padding: '8px 10px', borderRadius: 'var(--radius-sm)' }}>
+                <div style={{ color: 'var(--text-muted)', fontSize: '10.5px' }}>Reconstructed 3D Points</div>
+                <div style={{ color: 'var(--accent-emerald)', fontWeight: 600, marginTop: '2px' }}>
+                  {reconstructionResult.points_3d.toLocaleString()} points
+                </div>
+              </div>
+
+              <div style={{ background: 'var(--bg-surface-elevated)', padding: '8px 10px', borderRadius: 'var(--radius-sm)' }}>
+                <div style={{ color: 'var(--text-muted)', fontSize: '10.5px' }}>Camera Models</div>
+                <div style={{ color: 'var(--text-primary)', fontWeight: 600, marginTop: '2px' }}>
+                  {reconstructionResult.camera_count} camera(s)
+                </div>
+              </div>
+            </div>
 
             <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-              Session ID: {processingResult.session_id} • Resolution: {processingResult.video.width}×{processingResult.video.height}
+              Model: {reconstructionResult.model_path || 'sparse/0'}
             </div>
           </div>
         )}
 
-        {/* Processing Sequence List */}
+        {/* Reconstruction Sequence List */}
         <div
           style={{
             background: 'var(--bg-surface-elevated)',
             border: '1px solid var(--border-subtle)',
             borderRadius: 'var(--radius-md)',
-            padding: '20px',
+            padding: '18px',
             display: 'flex',
             flexDirection: 'column',
             gap: '14px',
           }}
         >
-          {/* Step 1: Preparing video */}
+          {/* Stage 1: Preparing reconstruction */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            {processingStage === 'completed' || processingStage === 'extracting' || processingStage === 'processing' ? (
+            {reconstructionStage === 'completed' ||
+            reconstructionStage === 'extracting_features' ||
+            reconstructionStage === 'matching_features' ||
+            reconstructionStage === 'reconstructing' ? (
               <CheckCircle2 size={18} style={{ color: 'var(--accent-emerald)', flexShrink: 0 }} />
-            ) : processingStage === 'uploading' ? (
-              <Loader2 size={18} className="spin-animation" style={{ color: 'var(--accent-cyan)', flexShrink: 0 }} />
-            ) : (
-              <Circle size={18} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-            )}
-            <span style={{ fontSize: '13.5px', color: 'var(--text-primary)', fontWeight: 500 }}>
-              Preparing video
-            </span>
-          </div>
-
-          {/* Step 2: Extracting useful frames */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            {processingStage === 'completed' ? (
-              <CheckCircle2 size={18} style={{ color: 'var(--accent-emerald)', flexShrink: 0 }} />
-            ) : processingStage === 'processing' || processingStage === 'extracting' ? (
+            ) : reconstructionStage === 'preparing' ? (
               <Loader2 size={18} className="spin-animation" style={{ color: 'var(--accent-cyan)', flexShrink: 0 }} />
             ) : (
               <Circle size={18} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
             )}
             <span
               style={{
-                fontSize: '13.5px',
-                color: processingStage === 'completed' || processingStage === 'processing' || processingStage === 'extracting' ? 'var(--text-primary)' : 'var(--text-muted)',
-                fontWeight: processingStage === 'processing' || processingStage === 'extracting' ? 600 : 500,
+                fontSize: '13px',
+                color: reconstructionStage !== 'not_started' ? 'var(--text-primary)' : 'var(--text-muted)',
+                fontWeight: reconstructionStage === 'preparing' ? 600 : 500,
               }}
             >
-              Extracting useful frames & blur filtering
+              Preparing reconstruction workspace
             </span>
           </div>
 
-          {/* Step 3: Checking room coverage */}
+          {/* Stage 2: Finding visual features */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <Circle size={18} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-            <span style={{ fontSize: '13.5px', color: 'var(--text-muted)' }}>
-              Checking room coverage (Upcoming step)
+            {reconstructionStage === 'completed' ||
+            reconstructionStage === 'matching_features' ||
+            reconstructionStage === 'reconstructing' ? (
+              <CheckCircle2 size={18} style={{ color: 'var(--accent-emerald)', flexShrink: 0 }} />
+            ) : reconstructionStage === 'extracting_features' ? (
+              <Loader2 size={18} className="spin-animation" style={{ color: 'var(--accent-cyan)', flexShrink: 0 }} />
+            ) : (
+              <Circle size={18} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+            )}
+            <span
+              style={{
+                fontSize: '13px',
+                color:
+                  reconstructionStage === 'extracting_features' ||
+                  reconstructionStage === 'matching_features' ||
+                  reconstructionStage === 'reconstructing' ||
+                  reconstructionStage === 'completed'
+                    ? 'var(--text-primary)'
+                    : 'var(--text-muted)',
+                fontWeight: reconstructionStage === 'extracting_features' ? 600 : 500,
+              }}
+            >
+              Finding visual features (COLMAP SIFT extraction)
             </span>
           </div>
 
-          {/* Step 4: Detecting moving objects */}
+          {/* Stage 3: Matching frames */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <Circle size={18} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-            <span style={{ fontSize: '13.5px', color: 'var(--text-muted)' }}>
-              Detecting moving objects (Upcoming step)
+            {reconstructionStage === 'completed' || reconstructionStage === 'reconstructing' ? (
+              <CheckCircle2 size={18} style={{ color: 'var(--accent-emerald)', flexShrink: 0 }} />
+            ) : reconstructionStage === 'matching_features' ? (
+              <Loader2 size={18} className="spin-animation" style={{ color: 'var(--accent-cyan)', flexShrink: 0 }} />
+            ) : (
+              <Circle size={18} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+            )}
+            <span
+              style={{
+                fontSize: '13px',
+                color:
+                  reconstructionStage === 'matching_features' ||
+                  reconstructionStage === 'reconstructing' ||
+                  reconstructionStage === 'completed'
+                    ? 'var(--text-primary)'
+                    : 'var(--text-muted)',
+                fontWeight: reconstructionStage === 'matching_features' ? 600 : 500,
+              }}
+            >
+              Matching frames across room views
+            </span>
+          </div>
+
+          {/* Stage 4: Estimating camera positions & sparse 3D scene */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            {reconstructionStage === 'completed' ? (
+              <CheckCircle2 size={18} style={{ color: 'var(--accent-emerald)', flexShrink: 0 }} />
+            ) : reconstructionStage === 'reconstructing' ? (
+              <Loader2 size={18} className="spin-animation" style={{ color: 'var(--accent-cyan)', flexShrink: 0 }} />
+            ) : (
+              <Circle size={18} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+            )}
+            <span
+              style={{
+                fontSize: '13px',
+                color: reconstructionStage === 'reconstructing' || reconstructionStage === 'completed' ? 'var(--text-primary)' : 'var(--text-muted)',
+                fontWeight: reconstructionStage === 'reconstructing' ? 600 : 500,
+              }}
+            >
+              Estimating camera positions & building sparse 3D scene
+            </span>
+          </div>
+
+          {/* Stage 5: Reconstruction complete */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            {reconstructionStage === 'completed' ? (
+              <CheckCircle2 size={18} style={{ color: 'var(--accent-emerald)', flexShrink: 0 }} />
+            ) : (
+              <Circle size={18} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+            )}
+            <span
+              style={{
+                fontSize: '13px',
+                color: reconstructionStage === 'completed' ? 'var(--accent-emerald)' : 'var(--text-muted)',
+                fontWeight: reconstructionStage === 'completed' ? 600 : 500,
+              }}
+            >
+              Reconstruction complete
             </span>
           </div>
         </div>
 
         {/* Actions */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px' }}>
-          <button
-            onClick={handleContinue}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '10px 22px',
-              borderRadius: 'var(--radius-md)',
-              backgroundColor: 'var(--accent-cyan)',
-              color: '#030712',
-              fontWeight: 600,
-              fontSize: '13.5px',
-              boxShadow: '0 0 14px rgba(56, 189, 248, 0.3)',
-              cursor: 'pointer',
-            }}
-          >
-            <span>Continue to 3D Reconstruction</span>
-            <ArrowRight size={15} strokeWidth={2.5} />
-          </button>
+          {!isReconstructionCompleted ? (
+            <button
+              onClick={handleStartReconstruction}
+              disabled={isReconstructing || processingStage !== 'completed'}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '10px 22px',
+                borderRadius: 'var(--radius-md)',
+                backgroundColor: isReconstructing || processingStage !== 'completed' ? 'var(--bg-surface-elevated)' : 'var(--accent-cyan)',
+                color: isReconstructing || processingStage !== 'completed' ? 'var(--text-muted)' : '#030712',
+                fontWeight: 600,
+                fontSize: '13.5px',
+                boxShadow: isReconstructing || processingStage !== 'completed' ? 'none' : '0 0 14px rgba(56, 189, 248, 0.3)',
+                cursor: isReconstructing || processingStage !== 'completed' ? 'not-allowed' : 'pointer',
+              }}
+            >
+              {isReconstructing ? (
+                <>
+                  <Loader2 size={15} className="spin-animation" />
+                  <span>Reconstructing 3D Scene...</span>
+                </>
+              ) : (
+                <>
+                  <span>Continue to 3D Reconstruction</span>
+                  <ArrowRight size={15} strokeWidth={2.5} />
+                </>
+              )}
+            </button>
+          ) : (
+            <button
+              onClick={handleContinueToScene}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '10px 24px',
+                borderRadius: 'var(--radius-md)',
+                backgroundColor: 'var(--accent-emerald)',
+                color: '#030712',
+                fontWeight: 600,
+                fontSize: '13.5px',
+                boxShadow: '0 0 14px rgba(16, 185, 129, 0.3)',
+                cursor: 'pointer',
+              }}
+            >
+              <span>View 3D Scene</span>
+              <ArrowRight size={15} strokeWidth={2.5} />
+            </button>
+          )}
         </div>
       </div>
     </div>
   );
 };
+

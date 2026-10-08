@@ -29,7 +29,11 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
   mode,
   onModeChange,
 }) => {
-  const { isDemoSampleLoaded, loadDemoSample, scanState } = useScanContext();
+  const {
+    isDemoSampleLoaded,
+    loadDemoSample,
+    reconstructionPoints,
+  } = useScanContext();
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -45,16 +49,53 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
 
   const pointsRef = useRef<Point3D[]>([]);
 
-  // Generate synthetic points ONLY if demo sample mode is explicitly activated
+  const hasRealPoints = Boolean(reconstructionPoints && reconstructionPoints.length > 0);
+  const has3DContent = isDemoSampleLoaded || hasRealPoints;
+
+  // Load points: real COLMAP points if available, or synthetic demo points if requested
   useEffect(() => {
+    if (reconstructionPoints && reconstructionPoints.length > 0) {
+      // 1. Real COLMAP 3D points
+      let minX = Infinity, maxX = -Infinity;
+      let minY = Infinity, maxY = -Infinity;
+      let minZ = Infinity, maxZ = -Infinity;
+
+      reconstructionPoints.forEach((p) => {
+        if (p.x < minX) minX = p.x;
+        if (p.x > maxX) maxX = p.x;
+        if (p.y < minY) minY = p.y;
+        if (p.y > maxY) maxY = p.y;
+        if (p.z < minZ) minZ = p.z;
+        if (p.z > maxZ) maxZ = p.z;
+      });
+
+      const cx = (minX + maxX) / 2;
+      const cy = (minY + maxY) / 2;
+      const cz = (minZ + maxZ) / 2;
+      const maxDim = Math.max(maxX - minX, maxY - minY, maxZ - minZ, 0.001);
+      const scale = 4.0 / maxDim;
+
+      pointsRef.current = reconstructionPoints.map((p) => ({
+        x: (p.x - cx) * scale,
+        y: (p.y - cy) * scale,
+        z: (p.z - cz) * scale,
+        r: p.r,
+        g: p.g,
+        b: p.b,
+        type: 'observed',
+      }));
+      return;
+    }
+
     if (!isDemoSampleLoaded) {
       pointsRef.current = [];
       return;
     }
 
+    // 2. Demo Sample Room Points (synthetic, only for preview)
     const points: Point3D[] = [];
 
-    // 1. Room Floor
+    // Room Floor
     for (let x = -3.5; x <= 3.5; x += 0.22) {
       for (let z = -3.5; z <= 3.5; z += 0.22) {
         const noise = (Math.random() - 0.5) * 0.03;
@@ -70,7 +111,7 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
       }
     }
 
-    // 2. Room Walls
+    // Room Walls
     for (let y = -1.5; y <= 2.2; y += 0.25) {
       for (let x = -3.5; x <= 3.5; x += 0.25) {
         // Back wall
@@ -118,7 +159,7 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
       }
     }
 
-    // 3. Central Table
+    // Central Table
     for (let x = -1.2; x <= 1.2; x += 0.12) {
       for (let z = -0.8; z <= 0.8; z += 0.12) {
         points.push({
@@ -134,7 +175,7 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
     }
 
     pointsRef.current = points;
-  }, [isDemoSampleLoaded]);
+  }, [isDemoSampleLoaded, reconstructionPoints]);
 
   // Handle Drag / Pan / Rotation
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -279,8 +320,8 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
         }
       }
 
-      // Render Camera Path if 3D points exist
-      if (showTrajectory && pointsRef.current.length > 0) {
+      // Render Camera Path if in demo mode
+      if (showTrajectory && isDemoSampleLoaded && pointsRef.current.length > 0) {
         const trajectoryPoints = [
           { x: 2.2, y: 0.1, z: 2.5 },
           { x: 1.5, y: 0.2, z: 2.0 },
@@ -409,8 +450,6 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
     { mode: 'pointcloud', label: 'Camera Points', icon: Box },
     { mode: 'coverage', label: 'Coverage', icon: PieChart },
   ];
-
-  const has3DContent = isDemoSampleLoaded || scanState.sceneReady;
 
   return (
     <div

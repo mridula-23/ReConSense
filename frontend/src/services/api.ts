@@ -19,6 +19,45 @@ export interface VideoProcessingResult {
   };
 }
 
+export interface ReconstructionStatusResponse {
+  session_id: string;
+  status: 'not_started' | 'preparing' | 'extracting_features' | 'matching_features' | 'reconstructing' | 'completed' | 'failed';
+  current_message: string;
+  message?: string;
+  registered_images?: number | null;
+  total_input_images?: number | null;
+  points_3d?: number | null;
+  error?: string | null;
+}
+
+export interface ReconstructionResultResponse {
+  session_id: string;
+  status: string;
+  registered_images: number;
+  total_input_images: number;
+  points_3d: number;
+  camera_count: number;
+  model_path: string;
+  sparse_models_count: number;
+}
+
+export interface ReconstructedPoint {
+  id: string;
+  x: number;
+  y: number;
+  z: number;
+  r: number;
+  g: number;
+  b: number;
+  error?: number;
+}
+
+export interface ReconstructionPointsResponse {
+  session_id: string;
+  count: number;
+  points: ReconstructedPoint[];
+}
+
 export const checkBackendHealth = async () => {
   try {
     const response = await fetch(`${API_BASE_URL}/api/health`);
@@ -59,6 +98,55 @@ export const fetchSessionStatus = async (sessionId: string): Promise<VideoProces
   const response = await fetch(`${API_BASE_URL}/api/videos/${sessionId}/status`);
   if (!response.ok) {
     throw new Error(`Failed to fetch status: ${response.status}`);
+  }
+  return response.json();
+};
+
+export const startReconstruction = async (
+  sessionId: string,
+  overlap = 10,
+  useGpu = true
+): Promise<{ session_id: string; status: string }> => {
+  const response = await fetch(
+    `${API_BASE_URL}/api/reconstruction/${sessionId}/start?overlap=${overlap}&use_gpu=${useGpu}`,
+    { method: 'POST' }
+  );
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ detail: 'Failed to start reconstruction' }));
+    throw new Error(err.detail || `Server returned ${response.status}`);
+  }
+  return response.json();
+};
+
+export const fetchReconstructionStatus = async (
+  sessionId: string
+): Promise<ReconstructionStatusResponse> => {
+  const response = await fetch(`${API_BASE_URL}/api/reconstruction/${sessionId}/status`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch reconstruction status: ${response.status}`);
+  }
+  return response.json();
+};
+
+export const fetchReconstructionResult = async (
+  sessionId: string
+): Promise<ReconstructionResultResponse> => {
+  const response = await fetch(`${API_BASE_URL}/api/reconstruction/${sessionId}/result`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch reconstruction result: ${response.status}`);
+  }
+  return response.json();
+};
+
+export const fetchReconstructionPoints = async (
+  sessionId: string,
+  maxPoints = 15000
+): Promise<ReconstructionPointsResponse> => {
+  const response = await fetch(
+    `${API_BASE_URL}/api/reconstruction/${sessionId}/points?max_points=${maxPoints}`
+  );
+  if (!response.ok) {
+    throw new Error(`Failed to fetch 3D points: ${response.status}`);
   }
   return response.json();
 };
