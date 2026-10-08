@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Loader2,
@@ -118,7 +118,7 @@ export const ProcessingPage: React.FC = () => {
     };
   }, []);
 
-  const handleStartReconstruction = async () => {
+  const handleStartReconstruction = useCallback(async () => {
     const sessionId = processingResult?.session_id || scanState.sessionId;
     if (!sessionId) {
       setReconstructionError('No active session ID for reconstruction');
@@ -166,6 +166,11 @@ export const ProcessingPage: React.FC = () => {
               sceneReady: true,
               reconstructionStatus: 'ready',
             }));
+
+            // Step 7: Automatic navigation to ScenePage after real reconstruction succeeds
+            setTimeout(() => {
+              navigate('/scene');
+            }, 1200);
           } else if (statusRes.status === 'failed') {
             if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
             setReconstructionError(statusRes.current_message || statusRes.message || statusRes.error || 'Reconstruction failed');
@@ -180,7 +185,30 @@ export const ProcessingPage: React.FC = () => {
       setReconstructionError(msg);
       setReconstructionStage('failed');
     }
-  };
+  }, [
+    navigate,
+    processingResult?.session_id,
+    reconstructionMode,
+    scanState.sessionId,
+    setReconstructionError,
+    setReconstructionMessage,
+    setReconstructionPoints,
+    setReconstructionResult,
+    setReconstructionStage,
+    setScanState,
+  ]);
+
+  // Auto-start reconstruction once dataset is ready
+  useEffect(() => {
+    if (
+      processingResult &&
+      (processingStage === 'completed' || processingResult.status === 'completed') &&
+      reconstructionStage === 'not_started' &&
+      !reconstructionError
+    ) {
+      handleStartReconstruction();
+    }
+  }, [processingResult, processingStage, reconstructionStage, reconstructionError, handleStartReconstruction]);
 
   const handleContinueToScene = () => {
     navigate('/scene');

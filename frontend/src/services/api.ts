@@ -171,6 +171,12 @@ export const getPairingWebSocketUrl = (sessionId: string): string => {
   return `${wsProtocol}//${host}:8000/ws/pairing/${sessionId}`;
 };
 
+export const getCameraWebSocketUrl = (sessionId: string): string => {
+  const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const host = window.location.hostname || 'localhost';
+  return `${wsProtocol}//${host}:8000/ws/camera/${sessionId}`;
+};
+
 export const checkBackendHealth = async () => {
   try {
     const response = await fetch(`${getApiBaseUrl()}/api/health`);
@@ -186,25 +192,70 @@ export const checkBackendHealth = async () => {
 
 export const processVideo = async (
   file: File,
-  sampleInterval = 10
+  sampleInterval = 10,
+  sessionId?: string,
+  onProgress?: (percent: number) => void,
 ): Promise<VideoProcessingResult> => {
   const formData = new FormData();
   formData.append('file', file);
 
-  const response = await fetch(
-    `${getApiBaseUrl()}/api/videos/process?sample_interval=${sampleInterval}`,
-    {
-      method: 'POST',
-      body: formData,
-    }
-  );
-
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({ detail: 'Failed to process video' }));
-    throw new Error(err.detail || `Server returned ${response.status}`);
+  const query = new URLSearchParams();
+  query.append('sample_interval', sampleInterval.toString());
+  if (sessionId) {
+    query.append('session_id', sessionId);
   }
 
-  return response.json();
+  const url = `${getApiBaseUrl()}/api/videos/process?${query.toString()}`;
+
+  if (!onProgress) {
+    const response = await fetch(url, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ detail: 'Failed to process video' }));
+      throw new Error(err.detail || `Server returned ${response.status}`);
+    }
+
+    return response.json();
+  }
+
+  return new Promise<VideoProcessingResult>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', url);
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        const percent = Math.round((event.loaded / event.total) * 100);
+        onProgress(percent);
+      }
+    };
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const parsed = JSON.parse(xhr.responseText);
+          resolve(parsed);
+        } catch {
+          reject(new Error('Invalid response from video processor'));
+        }
+      } else {
+        try {
+          const err = JSON.parse(xhr.responseText);
+          reject(new Error(err.detail || `Server returned ${xhr.status}`));
+        } catch {
+          reject(new Error(`Server returned status ${xhr.status}`));
+        }
+      }
+    };
+
+    xhr.onerror = () => {
+      reject(new Error('Network error occurred during video upload'));
+    };
+
+    xhr.send(formData);
+  });
 };
 
 export const fetchSessionStatus = async (sessionId: string): Promise<VideoProcessingResult> => {

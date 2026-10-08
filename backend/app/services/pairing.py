@@ -226,6 +226,33 @@ async def connect_phone_device(
     }
 
 
+async def broadcast_session_event(
+    session_id: str,
+    data: Dict[str, Any],
+    sender_ws: Optional[WebSocket] = None,
+):
+    """
+    Broadcasts a JSON event payload to all WebSockets registered for this session (pairing & camera).
+    """
+    # Pairing sockets
+    if session_id in _active_websockets:
+        for ws in list(_active_websockets[session_id]):
+            if ws != sender_ws:
+                try:
+                    await ws.send_json(data)
+                except Exception as e:
+                    logger.debug(f"Failed to send to pairing ws: {e}")
+
+    # Camera sockets
+    if session_id in _active_camera_websockets:
+        for ws in list(_active_camera_websockets[session_id]):
+            if ws != sender_ws:
+                try:
+                    await ws.send_json(data)
+                except Exception as e:
+                    logger.debug(f"Failed to send to camera ws: {e}")
+
+
 def register_websocket(session_id: str, ws: WebSocket):
     if session_id not in _active_websockets:
         _active_websockets[session_id] = []
@@ -238,3 +265,36 @@ def unregister_websocket(session_id: str, ws: WebSocket):
             _active_websockets[session_id].remove(ws)
         if not _active_websockets[session_id]:
             del _active_websockets[session_id]
+
+
+_active_camera_websockets: Dict[str, List[WebSocket]] = {}
+
+
+def register_camera_websocket(session_id: str, ws: WebSocket):
+    if session_id not in _active_camera_websockets:
+        _active_camera_websockets[session_id] = []
+    _active_camera_websockets[session_id].append(ws)
+
+
+def unregister_camera_websocket(session_id: str, ws: WebSocket):
+    if session_id in _active_camera_websockets:
+        if ws in _active_camera_websockets[session_id]:
+            _active_camera_websockets[session_id].remove(ws)
+        if not _active_camera_websockets[session_id]:
+            del _active_camera_websockets[session_id]
+
+
+async def broadcast_camera_message(session_id: str, message: Any, sender_ws: Optional[WebSocket] = None):
+    if session_id in _active_camera_websockets:
+        for ws in list(_active_camera_websockets[session_id]):
+            if ws != sender_ws:
+                try:
+                    if isinstance(message, dict):
+                        await ws.send_json(message)
+                    elif isinstance(message, str):
+                        await ws.send_text(message)
+                    elif isinstance(message, bytes):
+                        await ws.send_bytes(message)
+                except Exception as e:
+                    logger.debug(f"Failed to broadcast camera message: {e}")
+

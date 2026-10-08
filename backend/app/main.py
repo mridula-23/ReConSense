@@ -16,6 +16,10 @@ from app.services.pairing import (
     connect_phone_device,
     register_websocket,
     unregister_websocket,
+    register_camera_websocket,
+    unregister_camera_websocket,
+    broadcast_camera_message,
+    broadcast_session_event,
 )
 
 app = FastAPI(title="ReConSense Backend")
@@ -137,18 +141,48 @@ async def pairing_websocket(websocket: WebSocket, session_id: str):
         unregister_websocket(session_id, websocket)
 
 
+@app.websocket("/ws/camera/{session_id}")
+async def camera_websocket(websocket: WebSocket, session_id: str):
+    """
+    WebSocket endpoint for live real camera frame streaming and real-time capture/recording events
+    between mobile phone and laptop.
+    """
+    await websocket.accept()
+    register_camera_websocket(session_id, websocket)
+    try:
+        while True:
+            msg = await websocket.receive()
+            if "text" in msg and msg["text"]:
+                await broadcast_camera_message(session_id, msg["text"], sender_ws=websocket)
+            elif "bytes" in msg and msg["bytes"]:
+                await broadcast_camera_message(session_id, msg["bytes"], sender_ws=websocket)
+    except WebSocketDisconnect:
+        unregister_camera_websocket(session_id, websocket)
+    except Exception:
+        unregister_camera_websocket(session_id, websocket)
+
+
 # --- Video Processing Endpoints ---
 
 @app.post("/api/videos/process")
 async def process_video(
     file: UploadFile = File(...),
+    session_id: Optional[str] = Query(None),
     sample_interval: Optional[int] = Query(10, ge=1, le=120),
 ):
     """
     Accepts a video upload, validates it, extracts frames with quality filtering,
-    and returns real metadata.
+    and returns real metadata. Broadcasts completion event to session clients.
     """
-    return await process_uploaded_video(file, sample_interval=sample_interval)
+    result = await process_uploaded_video(file, session_id=session_id, sample_interval=sample_interval)
+    resolved_session_id = result.get("session_id")
+    if resolved_session_id:
+        await broadcast_session_event(resolved_session_id, {
+            "event": "upload_completed",
+            "session_id": resolved_session_id,
+            "result": result,
+        })
+    return result
 
 
 @app.get("/api/videos/{session_id}/status")
