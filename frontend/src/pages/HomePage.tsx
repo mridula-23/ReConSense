@@ -2,22 +2,24 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Layers,
-  Plus,
   FolderOpen,
   ArrowRight,
-  Camera,
   Box,
-  Sparkles,
 } from 'lucide-react';
 import { useScanContext } from '../context/ScanContext';
 
 export const HomePage: React.FC = () => {
   const navigate = useNavigate();
-  const { previousScans, startNewScan, reconstructionMode, setReconstructionMode } = useScanContext();
+  const { previousScans, setReconstructionMode } = useScanContext();
 
-  const handleStartScan = () => {
-    startNewScan('Room Scan 01', 'Living Room', reconstructionMode);
-    navigate('/new-scan');
+  const handleEnterReConSense = () => {
+    setReconstructionMode('reconsense');
+    navigate('/reconsense');
+  };
+
+  const handleEnterBaseline = () => {
+    setReconstructionMode('baseline');
+    navigate('/baseline');
   };
 
   return (
@@ -35,7 +37,7 @@ export const HomePage: React.FC = () => {
       <div
         style={{
           width: '100%',
-          maxWidth: '720px',
+          maxWidth: '680px',
           display: 'flex',
           flexDirection: 'column',
           gap: '36px',
@@ -45,8 +47,8 @@ export const HomePage: React.FC = () => {
         <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
           <div
             style={{
-              width: '46px',
-              height: '46px',
+              width: '48px',
+              height: '48px',
               borderRadius: 'var(--radius-md)',
               background: 'linear-gradient(135deg, #0284c7, #38bdf8)',
               display: 'flex',
@@ -60,238 +62,132 @@ export const HomePage: React.FC = () => {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <h1 style={{ fontSize: '32px', fontWeight: 700, letterSpacing: '-0.03em', color: 'var(--text-primary)' }}>
+            <h1 style={{ fontSize: '30px', fontWeight: 700, letterSpacing: '-0.03em', color: 'var(--text-primary)' }}>
               ReConSense
             </h1>
             <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--accent-cyan)' }}>
               Observation-aware 3D reconstruction
             </div>
-            <p style={{ fontSize: '15px', color: 'var(--text-secondary)', maxWidth: '440px', lineHeight: 1.5, marginTop: '4px' }}>
+            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', maxWidth: '440px', lineHeight: 1.5, marginTop: '2px' }}>
               Turn a short room video into an interactive 3D scene.
             </p>
           </div>
 
-          {/* Reconstruction Mode Selector */}
+          {/* Mode Selection Cards */}
           <div
             style={{
               width: '100%',
-              maxWidth: '620px',
-              marginTop: '10px',
+              marginTop: '12px',
               display: 'flex',
               flexDirection: 'column',
-              gap: '10px',
+              gap: '12px',
               textAlign: 'left',
             }}
           >
             <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              Reconstruction Mode
+              Select Reconstruction Mode
             </div>
 
             <div
               style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(2, 1fr)',
-                gap: '12px',
+                gap: '14px',
               }}
             >
-              {/* Option 1: ReConSense (Default) */}
+              {/* Option 1: ReConSense */}
               <div
-                onClick={() => setReconstructionMode('reconsense')}
                 style={{
-                  background: reconstructionMode === 'reconsense' ? 'rgba(56, 189, 248, 0.08)' : 'var(--bg-surface)',
-                  border: reconstructionMode === 'reconsense' ? '1px solid var(--accent-cyan)' : '1px solid var(--border-default)',
+                  background: 'var(--bg-surface)',
+                  border: '1px solid rgba(56, 189, 248, 0.4)',
                   borderRadius: 'var(--radius-md)',
-                  padding: '14px 16px',
+                  padding: '20px 18px',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '6px',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  boxShadow: reconstructionMode === 'reconsense' ? '0 0 16px rgba(56, 189, 248, 0.15)' : 'none',
-                  position: 'relative',
+                  justifyContent: 'space-between',
+                  gap: '14px',
+                  boxShadow: '0 0 18px rgba(56, 189, 248, 0.1)',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ fontSize: '13.5px', fontWeight: 600, color: reconstructionMode === 'reconsense' ? 'var(--accent-cyan)' : 'var(--text-primary)' }}>
-                    ReConSense
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-cyan)' }}>
+                    <Layers size={18} />
+                    <span style={{ fontSize: '15px', fontWeight: 600 }}>ReConSense</span>
                   </div>
-                  <div
-                    style={{
-                      width: '14px',
-                      height: '14px',
-                      borderRadius: '50%',
-                      border: reconstructionMode === 'reconsense' ? '4px solid var(--accent-cyan)' : '2px solid var(--border-default)',
-                      background: reconstructionMode === 'reconsense' ? '#fff' : 'transparent',
-                    }}
-                  />
+                  <p style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.45, margin: 0 }}>
+                    Observation-aware reconstruction with coverage analysis, camera guidance, refinement and AI completion.
+                  </p>
                 </div>
-                <p style={{ fontSize: '11.5px', color: 'var(--text-secondary)', lineHeight: 1.4, margin: 0 }}>
-                  Observation-aware reconstruction with coverage analysis, camera guidance, refinement and AI completion.
-                </p>
+
+                <button
+                  onClick={handleEnterReConSense}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    width: '100%',
+                    padding: '9px 14px',
+                    borderRadius: 'var(--radius-sm)',
+                    backgroundColor: 'var(--accent-cyan)',
+                    color: '#030712',
+                    fontWeight: 600,
+                    fontSize: '12.5px',
+                    cursor: 'pointer',
+                    boxShadow: '0 0 10px rgba(56, 189, 248, 0.25)',
+                  }}
+                >
+                  <span>Enter ReConSense</span>
+                  <ArrowRight size={14} />
+                </button>
               </div>
 
               {/* Option 2: Original Baseline */}
               <div
-                onClick={() => setReconstructionMode('baseline')}
                 style={{
-                  background: reconstructionMode === 'baseline' ? 'rgba(56, 189, 248, 0.08)' : 'var(--bg-surface)',
-                  border: reconstructionMode === 'baseline' ? '1px solid var(--accent-cyan)' : '1px solid var(--border-default)',
+                  background: 'var(--bg-surface)',
+                  border: '1px solid var(--border-default)',
                   borderRadius: 'var(--radius-md)',
-                  padding: '14px 16px',
+                  padding: '20px 18px',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '6px',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  boxShadow: reconstructionMode === 'baseline' ? '0 0 16px rgba(56, 189, 248, 0.15)' : 'none',
-                  position: 'relative',
+                  justifyContent: 'space-between',
+                  gap: '14px',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ fontSize: '13.5px', fontWeight: 600, color: reconstructionMode === 'baseline' ? 'var(--accent-cyan)' : 'var(--text-primary)' }}>
-                    Original Baseline
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
+                    <Box size={18} style={{ color: 'var(--text-secondary)' }} />
+                    <span style={{ fontSize: '15px', fontWeight: 600 }}>Original Baseline</span>
                   </div>
-                  <div
-                    style={{
-                      width: '14px',
-                      height: '14px',
-                      borderRadius: '50%',
-                      border: reconstructionMode === 'baseline' ? '4px solid var(--accent-cyan)' : '2px solid var(--border-default)',
-                      background: reconstructionMode === 'baseline' ? '#fff' : 'transparent',
-                    }}
-                  />
+                  <p style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.45, margin: 0 }}>
+                    Standard video-to-3D reconstruction without ReConSense observation and guidance features.
+                  </p>
                 </div>
-                <p style={{ fontSize: '11.5px', color: 'var(--text-secondary)', lineHeight: 1.4, margin: 0 }}>
-                  Standard reconstruction without ReConSense observation and guidance features.
-                </p>
+
+                <button
+                  onClick={handleEnterBaseline}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    width: '100%',
+                    padding: '9px 14px',
+                    borderRadius: 'var(--radius-sm)',
+                    backgroundColor: 'var(--bg-surface-elevated)',
+                    border: '1px solid var(--border-subtle)',
+                    color: 'var(--text-primary)',
+                    fontWeight: 600,
+                    fontSize: '12.5px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <span>Enter Original Baseline</span>
+                  <ArrowRight size={14} />
+                </button>
               </div>
             </div>
-          </div>
-
-          {/* Start Options */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(2, 1fr)',
-              gap: '14px',
-              width: '100%',
-              maxWidth: '620px',
-              marginTop: '4px',
-            }}
-          >
-            {/* Primary: Scan with Phone */}
-            <div
-              onClick={handleStartScan}
-              style={{
-                background: 'var(--bg-surface)',
-                border: '1px solid rgba(56, 189, 248, 0.4)',
-                borderRadius: 'var(--radius-md)',
-                padding: '18px 16px',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'flex-start',
-                textAlign: 'left',
-                gap: '10px',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                boxShadow: '0 0 16px rgba(56, 189, 248, 0.12)',
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  color: '#38bdf8',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                }}
-              >
-                <Camera size={18} />
-                <span>Scan with Phone</span>
-              </div>
-              <p style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.4, margin: 0 }}>
-                Capture the room using your phone.
-              </p>
-            </div>
-
-            {/* Secondary: Upload Video */}
-            <div
-              onClick={() => navigate('/upload')}
-              style={{
-                background: 'var(--bg-surface)',
-                border: '1px solid var(--border-default)',
-                borderRadius: 'var(--radius-md)',
-                padding: '18px 16px',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'flex-start',
-                textAlign: 'left',
-                gap: '10px',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  color: 'var(--text-primary)',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                }}
-              >
-                <Plus size={18} />
-                <span>Upload Video</span>
-              </div>
-              <p style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.4, margin: 0 }}>
-                Use a room video already saved on your computer.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Workflow Overview */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '12px',
-            background: 'var(--bg-surface)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            padding: '18px',
-          }}
-        >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--accent-cyan)', fontSize: '12px', fontWeight: 600 }}>
-              <Camera size={15} />
-              <span>1. Capture Room</span>
-            </div>
-            <p style={{ fontSize: '11.5px', color: 'var(--text-muted)', lineHeight: 1.4 }}>
-              Record a video sweep of the indoor space with your smartphone.
-            </p>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--accent-emerald)', fontSize: '12px', fontWeight: 600 }}>
-              <Box size={15} />
-              <span>2. Build 3D Scene</span>
-            </div>
-            <p style={{ fontSize: '11.5px', color: 'var(--text-muted)', lineHeight: 1.4 }}>
-              Laptop processes camera paths and builds the 3D room geometry.
-            </p>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--accent-indigo)', fontSize: '12px', fontWeight: 600 }}>
-              <Sparkles size={15} />
-              <span>3. Room Coverage</span>
-            </div>
-            <p style={{ fontSize: '11.5px', color: 'var(--text-muted)', lineHeight: 1.4 }}>
-              Inspect seen vs unseen areas and fill missing spots.
-            </p>
           </div>
         </div>
 

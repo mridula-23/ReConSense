@@ -6,16 +6,18 @@ import {
   Home,
   ChevronRight,
 } from 'lucide-react';
+import { useScanContext } from '../context/ScanContext';
 
 export const FlowHeader: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { reconstructionMode } = useScanContext();
 
-  const flowSteps = [
+  const isBaseline = reconstructionMode === 'baseline' || location.pathname.startsWith('/baseline');
+
+  const reconsenseFlowSteps = [
     { path: '/', label: 'Home' },
-    { path: '/new-scan', label: 'New Scan' },
-    { path: '/connect', label: 'Connect' },
-    { path: '/capture', label: 'Capture' },
+    { path: '/reconsense', label: 'ReConSense' },
     { path: '/processing', label: 'Processing' },
     { path: '/scene', label: '3D Scene' },
     { path: '/coverage', label: 'Coverage' },
@@ -23,6 +25,18 @@ export const FlowHeader: React.FC = () => {
     { path: '/refine', label: 'Refine' },
     { path: '/result', label: 'Result' },
   ];
+
+  const baselineFlowSteps = [
+    { path: '/', label: 'Home' },
+    { path: '/baseline', label: 'Baseline' },
+    { path: '/upload', label: 'Upload' },
+    { path: '/processing', label: 'Processing' },
+    { path: '/scene', label: '3D Scene' },
+    { path: '/result', label: 'Result' },
+    { path: '/research', label: 'Research' },
+  ];
+
+  const flowSteps = isBaseline ? baselineFlowSteps : reconsenseFlowSteps;
 
   return (
     <header

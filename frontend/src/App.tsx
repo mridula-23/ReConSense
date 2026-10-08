@@ -2,6 +2,9 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ScanProvider } from './context/ScanContext';
 import { AppShell } from './layouts/AppShell';
 import { HomePage } from './pages/HomePage';
+import { ReConSenseModePage } from './pages/ReConSenseModePage';
+import { BaselineModePage } from './pages/BaselineModePage';
+import { ResearchPage } from './pages/ResearchPage';
 import { UploadVideoPage } from './pages/UploadVideoPage';
 import { NewScanPage } from './pages/NewScanPage';
 import { ConnectPhonePage } from './pages/ConnectPhonePage';
@@ -22,6 +25,9 @@ export function App() {
         <Routes>
           <Route element={<AppShell />}>
             <Route path="/" element={<HomePage />} />
+            <Route path="/reconsense" element={<ReConSenseModePage />} />
+            <Route path="/baseline" element={<BaselineModePage />} />
+            <Route path="/research" element={<ResearchPage />} />
             <Route path="/upload" element={<UploadVideoPage />} />
             <Route path="/new-scan" element={<NewScanPage />} />
             <Route path="/connect" element={<ConnectPhonePage />} />

@@ -288,45 +288,94 @@ export const ScenePage: React.FC = () => {
 
         {/* Action Buttons */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <button
-            onClick={() => navigate('/coverage')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              padding: '9px 12px',
-              borderRadius: 'var(--radius-sm)',
-              background: 'var(--bg-surface-elevated)',
-              border: '1px solid var(--border-subtle)',
-              color: 'var(--text-primary)',
-              fontSize: '12.5px',
-              fontWeight: 500,
-            }}
-          >
-            <PieChart size={15} style={{ color: 'var(--accent-emerald)' }} />
-            <span>Room Coverage</span>
-          </button>
+          {reconstructionMode === 'reconsense' ? (
+            <>
+              <button
+                onClick={() => navigate('/coverage')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  padding: '9px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--bg-surface-elevated)',
+                  border: '1px solid var(--border-subtle)',
+                  color: 'var(--text-primary)',
+                  fontSize: '12.5px',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                }}
+              >
+                <PieChart size={15} style={{ color: 'var(--accent-emerald)' }} />
+                <span>Room Coverage</span>
+              </button>
 
-          <button
-            onClick={() => navigate('/coverage')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              padding: '10px',
-              borderRadius: 'var(--radius-md)',
-              backgroundColor: 'var(--accent-cyan)',
-              color: '#030712',
-              fontWeight: 600,
-              fontSize: '13px',
-              boxShadow: '0 0 12px rgba(56, 189, 248, 0.3)',
-            }}
-          >
-            <span>Continue</span>
-            <ArrowRight size={15} strokeWidth={2.5} />
-          </button>
+              <button
+                onClick={() => navigate('/coverage')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  padding: '10px',
+                  borderRadius: 'var(--radius-md)',
+                  backgroundColor: 'var(--accent-cyan)',
+                  color: '#030712',
+                  fontWeight: 600,
+                  fontSize: '13px',
+                  boxShadow: '0 0 12px rgba(56, 189, 248, 0.3)',
+                  cursor: 'pointer',
+                }}
+              >
+                <span>Continue to Coverage</span>
+                <ArrowRight size={15} strokeWidth={2.5} />
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => navigate('/research')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  padding: '9px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--bg-surface-elevated)',
+                  border: '1px solid var(--border-subtle)',
+                  color: 'var(--text-primary)',
+                  fontSize: '12.5px',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                }}
+              >
+                <span>Research Comparison</span>
+              </button>
+
+              <button
+                onClick={() => navigate('/result')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  padding: '10px',
+                  borderRadius: 'var(--radius-md)',
+                  backgroundColor: 'var(--accent-cyan)',
+                  color: '#030712',
+                  fontWeight: 600,
+                  fontSize: '13px',
+                  boxShadow: '0 0 12px rgba(56, 189, 248, 0.3)',
+                  cursor: 'pointer',
+                }}
+              >
+                <span>Continue to Result</span>
+                <ArrowRight size={15} strokeWidth={2.5} />
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

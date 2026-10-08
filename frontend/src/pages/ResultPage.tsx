@@ -12,11 +12,13 @@ import { useScanContext } from '../context/ScanContext';
 
 export const ResultPage: React.FC = () => {
   const navigate = useNavigate();
-  const { viewportMode, setViewportMode, movingObjects, resetAll, isDemoSampleLoaded } = useScanContext();
+  const { viewportMode, setViewportMode, movingObjects, resetAll, isDemoSampleLoaded, reconstructionMode } = useScanContext();
+
+  const isBaseline = reconstructionMode === 'baseline';
 
   const handleStartNew = () => {
     resetAll();
-    navigate('/');
+    navigate(isBaseline ? '/baseline' : '/reconsense');
   };
 
   return (
@@ -64,11 +66,28 @@ export const ResultPage: React.FC = () => {
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <div>
-            <div style={{ fontSize: '11px', color: 'var(--accent-emerald)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              Final 3D Scene
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+              <div style={{ fontSize: '11px', color: isBaseline ? 'var(--accent-amber)' : 'var(--accent-emerald)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                {isBaseline ? 'Baseline 3D Scene' : 'ReConSense 3D Scene'}
+              </div>
+              <span
+                style={{
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  letterSpacing: '0.05em',
+                  padding: '2px 7px',
+                  borderRadius: '999px',
+                  border: `1px solid ${isBaseline ? 'rgba(245, 158, 11, 0.4)' : 'rgba(56, 189, 248, 0.4)'}`,
+                  background: isBaseline ? 'rgba(245, 158, 11, 0.1)' : 'rgba(56, 189, 248, 0.1)',
+                  color: isBaseline ? 'var(--accent-amber)' : 'var(--accent-cyan)',
+                  textTransform: 'uppercase',
+                }}
+              >
+                {isBaseline ? 'Original Baseline' : 'ReConSense'}
+              </span>
             </div>
             <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text-primary)', marginTop: '2px' }}>
-              Your 3D Scene
+              {isBaseline ? 'Standard Reconstruction' : 'Refined 3D Scene'}
             </h2>
           </div>
 
@@ -87,33 +106,56 @@ export const ResultPage: React.FC = () => {
               Scene Status
             </div>
             <div style={{ fontSize: '13px', fontWeight: 600, color: isDemoSampleLoaded ? 'var(--accent-emerald)' : 'var(--text-secondary)' }}>
-              {isDemoSampleLoaded ? 'Completed 3D Room' : 'Scene not available yet'}
+              {isDemoSampleLoaded ? (isBaseline ? 'Standard Baseline Reconstructed' : 'Completed 3D Room') : 'Scene not available yet'}
             </div>
           </div>
 
           {/* Action List */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <button
-              onClick={() => navigate('/coverage')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '9px 12px',
-                borderRadius: 'var(--radius-sm)',
-                background: 'var(--bg-surface-elevated)',
-                border: '1px solid var(--border-subtle)',
-                color: 'var(--text-primary)',
-                fontSize: '12px',
-                textAlign: 'left',
-              }}
-            >
-              <PieChart size={15} style={{ color: 'var(--accent-emerald)' }} />
-              <span>View Coverage</span>
-            </button>
+            {!isBaseline && (
+              <>
+                <button
+                  onClick={() => navigate('/coverage')}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '9px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'var(--bg-surface-elevated)',
+                    border: '1px solid var(--border-subtle)',
+                    color: 'var(--text-primary)',
+                    fontSize: '12px',
+                    textAlign: 'left',
+                  }}
+                >
+                  <PieChart size={15} style={{ color: 'var(--accent-emerald)' }} />
+                  <span>View Coverage</span>
+                </button>
+
+                <button
+                  onClick={() => navigate('/scene')}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '9px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'var(--bg-surface-elevated)',
+                    border: '1px solid var(--border-subtle)',
+                    color: 'var(--text-primary)',
+                    fontSize: '12px',
+                    textAlign: 'left',
+                  }}
+                >
+                  <UserX size={15} style={{ color: 'var(--accent-rose)' }} />
+                  <span>View Moving Objects</span>
+                </button>
+              </>
+            )}
 
             <button
-              onClick={() => navigate('/scene')}
+              onClick={() => navigate('/research')}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -127,8 +169,8 @@ export const ResultPage: React.FC = () => {
                 textAlign: 'left',
               }}
             >
-              <UserX size={15} style={{ color: 'var(--accent-rose)' }} />
-              <span>View Moving Objects</span>
+              <PieChart size={15} style={{ color: 'var(--accent-cyan)' }} />
+              <span>Research Comparison</span>
             </button>
 
             <button
