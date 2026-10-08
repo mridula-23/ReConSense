@@ -53,11 +53,15 @@ async def pairing_info():
     Returns the host machine's active local network IPv4 address for QR pairing.
     """
     ip = get_lan_ip()
+    frontend_url = f"http://{ip}:5173" if ip else None
+    backend_url = f"http://{ip}:8000" if ip else None
     return {
         "lan_ip": ip,
         "available": ip is not None,
         "backend_port": 8000,
         "frontend_port": 5173,
+        "frontend_url": frontend_url,
+        "backend_url": backend_url,
     }
 
 

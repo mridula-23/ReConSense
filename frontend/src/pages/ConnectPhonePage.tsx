@@ -40,10 +40,24 @@ export const ConnectPhonePage: React.FC = () => {
   const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
 
+  const isValidQrUrl = (url: string | null | undefined): boolean => {
+    if (!url || typeof url !== 'string') return false;
+    if (
+      url.includes('localhost') ||
+      url.includes('127.0.0.1') ||
+      url.includes('undefined') ||
+      url.includes('null')
+    ) {
+      return false;
+    }
+    return url.startsWith('http://') || url.startsWith('https://');
+  };
+
   // Initialize or regenerate pairing session
   const initPairing = useCallback(async () => {
     setIsLoading(true);
     setErrorMessage(null);
+    setQrDataUrl(null);
     setConnectionStatus('waiting');
 
     try {
@@ -54,15 +68,19 @@ export const ConnectPhonePage: React.FC = () => {
       setPairingSession(session);
       setTimeLeft(session.expires_in || 300);
 
-      // Check if LAN IP is detected
-      if (!session.lan_ip) {
+      // Validate that QR URL is a real reachable LAN URL (never localhost or 127.0.0.1)
+      if (!session.lan_ip || !isValidQrUrl(session.qr_url)) {
+        setConnectionStatus('error');
         setErrorMessage(
-          'Unable to determine your laptop\'s local network address. Make sure your laptop is connected to Wi-Fi or Ethernet.'
+          session.error ||
+          "Unable to determine your laptop's LAN address. Make sure Wi-Fi is enabled and both devices are connected to the same local network."
         );
+        setIsLoading(false);
+        return;
       }
 
       // Generate real QR code image
-      const dataUrl = await QRCode.toDataURL(session.qr_url, {
+      const dataUrl = await QRCode.toDataURL(session.qr_url!, {
         width: 220,
         margin: 2,
         color: {

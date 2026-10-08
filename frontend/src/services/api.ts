@@ -1,4 +1,17 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+export const getApiBaseUrl = (): string => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  if (
+    typeof window !== 'undefined' &&
+    window.location.hostname &&
+    window.location.hostname !== 'localhost' &&
+    window.location.hostname !== '127.0.0.1'
+  ) {
+    return `${window.location.protocol}//${window.location.hostname}:8000`;
+  }
+  return 'http://localhost:8000';
+};
 
 export interface VideoProcessingResult {
   session_id: string;
@@ -63,23 +76,26 @@ export interface PairingInfoResponse {
   available: boolean;
   backend_port: number;
   frontend_port: number;
+  frontend_url?: string | null;
+  backend_url?: string | null;
 }
 
 export interface PairingSessionResponse {
   session_id: string;
   token: string;
-  status: 'waiting' | 'connecting' | 'connected' | 'expired' | 'failed';
+  status: 'waiting' | 'connecting' | 'connected' | 'expired' | 'failed' | 'network_unreachable';
   lan_ip: string | null;
-  qr_url: string;
+  qr_url: string | null;
   created_at: number;
   expires_at: number;
   expires_in: number;
   device_info: string | null;
   connected_at: number | null;
+  error?: string | null;
 }
 
 export const fetchPairingInfo = async (): Promise<PairingInfoResponse> => {
-  const response = await fetch(`${API_BASE_URL}/api/pairing/info`);
+  const response = await fetch(`${getApiBaseUrl()}/api/pairing/info`);
   if (!response.ok) {
     throw new Error('Failed to fetch local network pairing info');
   }
@@ -94,7 +110,7 @@ export const createPairingSession = async (
   if (sessionId) query.append('session_id', sessionId);
   query.append('client_port', clientPort.toString());
 
-  const response = await fetch(`${API_BASE_URL}/api/pairing/create?${query.toString()}`, {
+  const response = await fetch(`${getApiBaseUrl()}/api/pairing/create?${query.toString()}`, {
     method: 'POST',
   });
   if (!response.ok) {
@@ -104,7 +120,7 @@ export const createPairingSession = async (
 };
 
 export const fetchPairingStatus = async (sessionId: string): Promise<PairingSessionResponse> => {
-  const response = await fetch(`${API_BASE_URL}/api/pairing/status/${sessionId}`);
+  const response = await fetch(`${getApiBaseUrl()}/api/pairing/status/${sessionId}`);
   if (!response.ok) {
     throw new Error('Failed to fetch pairing status');
   }
@@ -116,7 +132,7 @@ export const connectPhoneDevice = async (
   token: string,
   deviceInfo: string = 'Smartphone Camera'
 ): Promise<{ status: string; session_id: string; message: string; device_info: string }> => {
-  const response = await fetch(`${API_BASE_URL}/api/pairing/connect`, {
+  const response = await fetch(`${getApiBaseUrl()}/api/pairing/connect`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -134,14 +150,13 @@ export const connectPhoneDevice = async (
 
 export const getPairingWebSocketUrl = (sessionId: string): string => {
   const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  // If API_BASE_URL has a specific host, use it; otherwise use window.location.hostname:8000
-  const host = window.location.hostname;
+  const host = window.location.hostname || 'localhost';
   return `${wsProtocol}//${host}:8000/ws/pairing/${sessionId}`;
 };
 
 export const checkBackendHealth = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/health`);
+    const response = await fetch(`${getApiBaseUrl()}/api/health`);
     if (!response.ok) {
       throw new Error('Network response was not ok');
     }
@@ -160,7 +175,7 @@ export const processVideo = async (
   formData.append('file', file);
 
   const response = await fetch(
-    `${API_BASE_URL}/api/videos/process?sample_interval=${sampleInterval}`,
+    `${getApiBaseUrl()}/api/videos/process?sample_interval=${sampleInterval}`,
     {
       method: 'POST',
       body: formData,
@@ -176,7 +191,7 @@ export const processVideo = async (
 };
 
 export const fetchSessionStatus = async (sessionId: string): Promise<VideoProcessingResult> => {
-  const response = await fetch(`${API_BASE_URL}/api/videos/${sessionId}/status`);
+  const response = await fetch(`${getApiBaseUrl()}/api/videos/${sessionId}/status`);
   if (!response.ok) {
     throw new Error(`Failed to fetch status: ${response.status}`);
   }
@@ -191,7 +206,7 @@ export const startReconstruction = async (
 ): Promise<{ session_id: string; status: string; mode?: string }> => {
   try {
     const response = await fetch(
-      `${API_BASE_URL}/api/reconstruction/${sessionId}/start?overlap=${overlap}&use_gpu=${useGpu}&mode=${mode}`,
+      `${getApiBaseUrl()}/api/reconstruction/${sessionId}/start?overlap=${overlap}&use_gpu=${useGpu}&mode=${mode}`,
       { method: 'POST' }
     );
     if (!response.ok) {
@@ -211,7 +226,7 @@ export const fetchReconstructionStatus = async (
   sessionId: string
 ): Promise<ReconstructionStatusResponse> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/reconstruction/${sessionId}/status`);
+    const response = await fetch(`${getApiBaseUrl()}/api/reconstruction/${sessionId}/status`);
     if (!response.ok) {
       throw new Error(`Failed to fetch reconstruction status: ${response.status}`);
     }
@@ -227,7 +242,7 @@ export const fetchReconstructionStatus = async (
 export const fetchReconstructionResult = async (
   sessionId: string
 ): Promise<ReconstructionResultResponse> => {
-  const response = await fetch(`${API_BASE_URL}/api/reconstruction/${sessionId}/result`);
+  const response = await fetch(`${getApiBaseUrl()}/api/reconstruction/${sessionId}/result`);
   if (!response.ok) {
     throw new Error(`Failed to fetch reconstruction result: ${response.status}`);
   }
@@ -239,7 +254,7 @@ export const fetchReconstructionPoints = async (
   maxPoints = 15000
 ): Promise<ReconstructionPointsResponse> => {
   const response = await fetch(
-    `${API_BASE_URL}/api/reconstruction/${sessionId}/points?max_points=${maxPoints}`
+    `${getApiBaseUrl()}/api/reconstruction/${sessionId}/points?max_points=${maxPoints}`
   );
   if (!response.ok) {
     throw new Error(`Failed to fetch 3D points: ${response.status}`);
