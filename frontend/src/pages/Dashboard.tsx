@@ -120,14 +120,7 @@ export const Dashboard: React.FC = () => {
         }}
       >
         {/* Quick Top Metrics Ribbon */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
-            gap: '10px',
-            flexShrink: 0,
-          }}
-        >
+        <div className="dashboard-metrics-grid">
           <MetricCard
             label="Total Observed Room"
             value="84.6%"
@@ -173,19 +166,7 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* Right Column: Multi-panel Telemetry & Perception Insights */}
-      <div
-        style={{
-          flex: '0 0 380px',
-          width: '380px',
-          maxWidth: '420px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '10px',
-          height: '100%',
-          overflowY: 'auto',
-          paddingRight: '2px',
-        }}
-      >
+      <div className="dashboard-right-drawer">
         {/* Mobile Pairing & WebRTC Ingest */}
         <ConnectionStatus connection={mockDeviceConnection} />
 

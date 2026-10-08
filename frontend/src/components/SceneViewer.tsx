@@ -496,11 +496,19 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
       }
     };
 
+    const handleWheelEvent = (e: WheelEvent) => {
+      e.preventDefault();
+      const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+      setZoom((prev) => Math.max(0.4, Math.min(3.5, prev * zoomFactor)));
+    };
+
     handleResize();
     window.addEventListener('resize', handleResize);
+    canvas.addEventListener('wheel', handleWheelEvent, { passive: false });
 
     return () => {
       window.removeEventListener('resize', handleResize);
+      canvas.removeEventListener('wheel', handleWheelEvent);
       if (animId !== null) cancelAnimationFrame(animId);
     };
   }, [mode, project, rotation, zoom, showGrid, showTrajectory, showBBoxes, dynamicObjects]);
@@ -535,12 +543,6 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
 
   const handleMouseUp = () => {
     setIsDragging(false);
-  };
-
-  const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
-    const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
-    setZoom((prev) => Math.max(0.4, Math.min(3.5, prev * zoomFactor)));
   };
 
   const resetView = () => {
@@ -704,7 +706,6 @@ export const SceneViewer: React.FC<SceneViewerProps> = ({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
-        onWheel={handleWheel}
         style={{
           width: '100%',
           height: '100%',
