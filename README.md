@@ -125,6 +125,24 @@ The project will be developed incrementally:
 14. Reconstruction refinement
 15. Final demo optimization
 
+## Development Setup
+
+**Backend:**
+```bash
+cd backend
+python -m venv venv
+# Activate venv: `venv\Scripts\activate` on Windows or `source venv/bin/activate` on Linux/Mac
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8000
+```
+
+**Frontend:**
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
 ## Project Structure
 
 - `frontend/`: React/Vite web application for the interactive 3D viewer and dashboard.
