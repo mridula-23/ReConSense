@@ -13,10 +13,10 @@ import { useScanContext } from '../context/ScanContext';
 
 export const HomePage: React.FC = () => {
   const navigate = useNavigate();
-  const { previousScans, startNewScan } = useScanContext();
+  const { previousScans, startNewScan, reconstructionMode, setReconstructionMode } = useScanContext();
 
   const handleStartScan = () => {
-    startNewScan('Room Scan 01', 'Living Room');
+    startNewScan('Room Scan 01', 'Living Room', reconstructionMode);
     navigate('/new-scan');
   };
 
@@ -71,6 +71,103 @@ export const HomePage: React.FC = () => {
             </p>
           </div>
 
+          {/* Reconstruction Mode Selector */}
+          <div
+            style={{
+              width: '100%',
+              maxWidth: '620px',
+              marginTop: '10px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+              textAlign: 'left',
+            }}
+          >
+            <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Reconstruction Mode
+            </div>
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gap: '12px',
+              }}
+            >
+              {/* Option 1: ReConSense (Default) */}
+              <div
+                onClick={() => setReconstructionMode('reconsense')}
+                style={{
+                  background: reconstructionMode === 'reconsense' ? 'rgba(56, 189, 248, 0.08)' : 'var(--bg-surface)',
+                  border: reconstructionMode === 'reconsense' ? '1px solid var(--accent-cyan)' : '1px solid var(--border-default)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '14px 16px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  boxShadow: reconstructionMode === 'reconsense' ? '0 0 16px rgba(56, 189, 248, 0.15)' : 'none',
+                  position: 'relative',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ fontSize: '13.5px', fontWeight: 600, color: reconstructionMode === 'reconsense' ? 'var(--accent-cyan)' : 'var(--text-primary)' }}>
+                    ReConSense
+                  </div>
+                  <div
+                    style={{
+                      width: '14px',
+                      height: '14px',
+                      borderRadius: '50%',
+                      border: reconstructionMode === 'reconsense' ? '4px solid var(--accent-cyan)' : '2px solid var(--border-default)',
+                      background: reconstructionMode === 'reconsense' ? '#fff' : 'transparent',
+                    }}
+                  />
+                </div>
+                <p style={{ fontSize: '11.5px', color: 'var(--text-secondary)', lineHeight: 1.4, margin: 0 }}>
+                  Observation-aware reconstruction with coverage analysis, camera guidance, refinement and AI completion.
+                </p>
+              </div>
+
+              {/* Option 2: Original Baseline */}
+              <div
+                onClick={() => setReconstructionMode('baseline')}
+                style={{
+                  background: reconstructionMode === 'baseline' ? 'rgba(56, 189, 248, 0.08)' : 'var(--bg-surface)',
+                  border: reconstructionMode === 'baseline' ? '1px solid var(--accent-cyan)' : '1px solid var(--border-default)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '14px 16px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  boxShadow: reconstructionMode === 'baseline' ? '0 0 16px rgba(56, 189, 248, 0.15)' : 'none',
+                  position: 'relative',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ fontSize: '13.5px', fontWeight: 600, color: reconstructionMode === 'baseline' ? 'var(--accent-cyan)' : 'var(--text-primary)' }}>
+                    Original Baseline
+                  </div>
+                  <div
+                    style={{
+                      width: '14px',
+                      height: '14px',
+                      borderRadius: '50%',
+                      border: reconstructionMode === 'baseline' ? '4px solid var(--accent-cyan)' : '2px solid var(--border-default)',
+                      background: reconstructionMode === 'baseline' ? '#fff' : 'transparent',
+                    }}
+                  />
+                </div>
+                <p style={{ fontSize: '11.5px', color: 'var(--text-secondary)', lineHeight: 1.4, margin: 0 }}>
+                  Standard reconstruction without ReConSense observation and guidance features.
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Start Options */}
           <div
             style={{
@@ -78,8 +175,8 @@ export const HomePage: React.FC = () => {
               gridTemplateColumns: 'repeat(2, 1fr)',
               gap: '14px',
               width: '100%',
-              maxWidth: '560px',
-              marginTop: '12px',
+              maxWidth: '620px',
+              marginTop: '4px',
             }}
           >
             {/* Primary: Scan with Phone */}

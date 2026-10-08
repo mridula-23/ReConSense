@@ -9,17 +9,20 @@ import { useScanContext } from '../context/ScanContext';
 
 export const NewScanPage: React.FC = () => {
   const navigate = useNavigate();
-  const { scanState, setScanState } = useScanContext();
+  const { scanState, setScanState, reconstructionMode, setReconstructionMode } = useScanContext();
 
   const [scanName, setScanName] = useState(scanState.scanName);
   const [roomType, setRoomType] = useState(scanState.roomType);
+  const [mode, setMode] = useState(reconstructionMode);
 
   const handleContinue = () => {
     setScanState((prev) => ({
       ...prev,
       scanName,
       roomType,
+      reconstructionMode: mode,
     }));
+    setReconstructionMode(mode);
     navigate('/connect');
   };
 
@@ -80,7 +83,83 @@ export const NewScanPage: React.FC = () => {
         </p>
 
         {/* Form Inputs */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Reconstruction Mode Selector */}
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '8px' }}>
+              Reconstruction Mode
+            </label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
+              <div
+                onClick={() => setMode('reconsense')}
+                style={{
+                  background: mode === 'reconsense' ? 'rgba(56, 189, 248, 0.08)' : 'var(--bg-surface-elevated)',
+                  border: mode === 'reconsense' ? '1px solid var(--accent-cyan)' : '1px solid var(--border-default)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '12px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '4px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  boxShadow: mode === 'reconsense' ? '0 0 12px rgba(56, 189, 248, 0.15)' : 'none',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: mode === 'reconsense' ? 'var(--accent-cyan)' : 'var(--text-primary)' }}>
+                    ReConSense
+                  </span>
+                  <div
+                    style={{
+                      width: '12px',
+                      height: '12px',
+                      borderRadius: '50%',
+                      border: mode === 'reconsense' ? '3.5px solid var(--accent-cyan)' : '2px solid var(--border-default)',
+                      background: mode === 'reconsense' ? '#fff' : 'transparent',
+                    }}
+                  />
+                </div>
+                <p style={{ fontSize: '11px', color: 'var(--text-secondary)', lineHeight: 1.35, margin: 0 }}>
+                  Observation-aware reconstruction with coverage analysis & guidance.
+                </p>
+              </div>
+
+              <div
+                onClick={() => setMode('baseline')}
+                style={{
+                  background: mode === 'baseline' ? 'rgba(56, 189, 248, 0.08)' : 'var(--bg-surface-elevated)',
+                  border: mode === 'baseline' ? '1px solid var(--accent-cyan)' : '1px solid var(--border-default)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '12px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '4px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  boxShadow: mode === 'baseline' ? '0 0 12px rgba(56, 189, 248, 0.15)' : 'none',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: mode === 'baseline' ? 'var(--accent-cyan)' : 'var(--text-primary)' }}>
+                    Original Baseline
+                  </span>
+                  <div
+                    style={{
+                      width: '12px',
+                      height: '12px',
+                      borderRadius: '50%',
+                      border: mode === 'baseline' ? '3.5px solid var(--accent-cyan)' : '2px solid var(--border-default)',
+                      background: mode === 'baseline' ? '#fff' : 'transparent',
+                    }}
+                  />
+                </div>
+                <p style={{ fontSize: '11px', color: 'var(--text-secondary)', lineHeight: 1.35, margin: 0 }}>
+                  Standard reconstruction without observation and guidance features.
+                </p>
+              </div>
+            </div>
+          </div>
+
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '6px' }}>
               Scan Name

@@ -43,6 +43,7 @@ export const ProcessingPage: React.FC = () => {
     setReconstructionMessage,
     reconstructionError,
     setReconstructionError,
+    reconstructionMode,
   } = useScanContext();
 
   const isUpload = scanState.inputSource === 'upload';
@@ -234,7 +235,7 @@ export const ProcessingPage: React.FC = () => {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '14px' }}>
           <div>
             <div style={{ fontSize: '11px', color: 'var(--accent-cyan)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              Reconstruction Pipeline
+              Reconstruction Pipeline • {reconstructionMode === 'baseline' ? 'Original Baseline' : 'ReConSense'}
             </div>
             <h2 style={{ fontSize: '19px', fontWeight: 600, color: 'var(--text-primary)', marginTop: '2px' }}>
               Building Your 3D Scene
@@ -259,7 +260,7 @@ export const ProcessingPage: React.FC = () => {
           </button>
         </div>
 
-        {/* Input Source & Status Badge */}
+        {/* Input Source & Mode & Status Badge */}
         <div
           style={{
             background: 'var(--bg-surface-elevated)',
@@ -271,18 +272,31 @@ export const ProcessingPage: React.FC = () => {
             justifyContent: 'space-between',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {isUpload ? (
-              <FileVideo size={18} style={{ color: 'var(--accent-cyan)' }} />
-            ) : (
-              <Smartphone size={18} style={{ color: 'var(--accent-emerald)' }} />
-            )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              {isUpload ? (
+                <FileVideo size={18} style={{ color: 'var(--accent-cyan)' }} />
+              ) : (
+                <Smartphone size={18} style={{ color: 'var(--accent-emerald)' }} />
+              )}
+              <div>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                  Source
+                </div>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  {isUpload ? 'Uploaded Video' : 'Phone Capture'}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ width: '1px', height: '24px', background: 'var(--border-subtle)' }} />
+
             <div>
               <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                Source
+                Mode
               </div>
-              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                {isUpload ? 'Uploaded Video' : 'Phone Capture'}
+              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--accent-cyan)' }}>
+                {reconstructionMode === 'baseline' ? 'Original Baseline' : 'ReConSense'}
               </div>
             </div>
           </div>

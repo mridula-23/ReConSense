@@ -24,6 +24,7 @@ export const UploadVideoPage: React.FC = () => {
     uploadedVideoUrl,
     setUploadedVideo,
     startUploadScan,
+    reconstructionMode,
   } = useScanContext();
 
   const [isDragging, setIsDragging] = useState(false);
@@ -180,7 +181,7 @@ export const UploadVideoPage: React.FC = () => {
                 letterSpacing: '0.06em',
               }}
             >
-              Video Input
+              Video Input • {reconstructionMode === 'baseline' ? 'Original Baseline' : 'ReConSense'}
             </div>
             <h2 style={{ fontSize: '20px', fontWeight: 600, color: 'var(--text-primary)', marginTop: '2px' }}>
               Upload a Room Video

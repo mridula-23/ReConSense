@@ -23,6 +23,7 @@ export const ScenePage: React.FC = () => {
     reconstructionResult,
     reconstructionStage,
     reconstructionError,
+    reconstructionMode,
   } = useScanContext();
 
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -80,7 +81,7 @@ export const ScenePage: React.FC = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <div>
             <div style={{ fontSize: '11px', color: 'var(--accent-cyan)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              Step 4 of 8
+              Step 4 of 8 • {reconstructionMode === 'baseline' ? 'Original Baseline Scene' : 'ReConSense Scene'}
             </div>
             <h2 style={{ fontSize: '17px', fontWeight: 600, color: 'var(--text-primary)', marginTop: '2px' }}>
               3D Scene
@@ -232,6 +233,12 @@ export const ScenePage: React.FC = () => {
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ color: 'var(--text-muted)' }}>Pipeline:</span>
                     <span style={{ color: 'var(--accent-cyan)' }}>COLMAP 3.11</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>Mode:</span>
+                    <span style={{ color: 'var(--accent-cyan)' }}>
+                      {reconstructionMode === 'baseline' ? 'Original Baseline' : 'ReConSense'}
+                    </span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ color: 'var(--text-muted)' }}>Status:</span>

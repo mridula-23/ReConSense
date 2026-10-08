@@ -7,6 +7,7 @@ import type {
 } from '../services/api';
 
 export type ViewportMode = 'shaded' | 'wireframe' | 'pointcloud' | 'coverage';
+export type ReconstructionMode = 'reconsense' | 'baseline';
 
 export interface CoverageSection {
   id: string;
@@ -45,6 +46,7 @@ export interface ScanSession {
 export interface ScanState {
   scanName: string;
   roomType: string;
+  reconstructionMode: ReconstructionMode;
   inputSource: 'phone' | 'upload';
   uploadedVideoName: string | null;
   uploadedVideoSize: number | null;
@@ -70,6 +72,8 @@ export interface PhoneConnectionState {
 interface ScanContextType {
   scanState: ScanState;
   setScanState: React.Dispatch<React.SetStateAction<ScanState>>;
+  reconstructionMode: ReconstructionMode;
+  setReconstructionMode: (mode: ReconstructionMode) => void;
   activeSession: ScanSession | null;
   setActiveSession: React.Dispatch<React.SetStateAction<ScanSession | null>>;
   previousScans: { id: string; name: string; date: string; roomType?: string; createdAt?: string }[];
@@ -103,8 +107,8 @@ interface ScanContextType {
   setReconstructionMessage: React.Dispatch<React.SetStateAction<string>>;
   reconstructionError: string | null;
   setReconstructionError: React.Dispatch<React.SetStateAction<string | null>>;
-  startNewScan: (name?: string, roomType?: string) => void;
-  startUploadScan: (file: File, name?: string) => void;
+  startNewScan: (name?: string, roomType?: string, mode?: ReconstructionMode) => void;
+  startUploadScan: (file: File, name?: string, mode?: ReconstructionMode) => void;
   connectPhone: () => void;
   startCapture: () => void;
   finishCapture: () => void;
@@ -118,6 +122,7 @@ interface ScanContextType {
 const defaultScanState: ScanState = {
   scanName: 'Room Scan 01',
   roomType: 'Living Room',
+  reconstructionMode: 'reconsense',
   inputSource: 'phone',
   uploadedVideoName: null,
   uploadedVideoSize: null,
@@ -194,7 +199,14 @@ export const ScanProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const startUploadScan = (file: File, name?: string) => {
+  const setReconstructionMode = (mode: ReconstructionMode) => {
+    setScanState((prev) => ({
+      ...prev,
+      reconstructionMode: mode,
+    }));
+  };
+
+  const startUploadScan = (file: File, name?: string, mode?: ReconstructionMode) => {
     if (uploadedVideoUrl) {
       URL.revokeObjectURL(uploadedVideoUrl);
     }
@@ -205,15 +217,16 @@ export const ScanProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setProcessingStage('idle');
     setProcessingError(null);
     const scanName = name || file.name.replace(/\.[^/.]+$/, '') || 'Uploaded Video Scan';
-    setScanState({
+    setScanState((prev) => ({
       ...defaultScanState,
+      reconstructionMode: mode || prev.reconstructionMode || 'reconsense',
       scanName,
       inputSource: 'upload',
       uploadedVideoName: file.name,
       uploadedVideoSize: file.size,
       captureFinished: true,
       captureStatus: 'finished',
-    });
+    }));
     setActiveSession({
       id: `SCAN-${Date.now().toString().slice(-4)}`,
       name: scanName,
@@ -227,7 +240,7 @@ export const ScanProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setGuidanceTips([]);
   };
 
-  const startNewScan = (name?: string, roomType?: string) => {
+  const startNewScan = (name?: string, roomType?: string, mode?: ReconstructionMode) => {
     if (uploadedVideoUrl) {
       URL.revokeObjectURL(uploadedVideoUrl);
       setUploadedVideoUrl(null);
@@ -238,12 +251,13 @@ export const ScanProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setProcessingError(null);
     const scanName = name || 'Room Scan';
     const room = roomType || 'Indoor Room';
-    setScanState({
+    setScanState((prev) => ({
       ...defaultScanState,
+      reconstructionMode: mode || prev.reconstructionMode || 'reconsense',
       inputSource: 'phone',
       scanName,
       roomType: room,
-    });
+    }));
     setActiveSession({
       id: `SCAN-${Date.now().toString().slice(-4)}`,
       name: scanName,
@@ -370,6 +384,8 @@ export const ScanProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         scanState,
         setScanState,
+        reconstructionMode: scanState.reconstructionMode,
+        setReconstructionMode,
         activeSession,
         setActiveSession,
         previousScans,
