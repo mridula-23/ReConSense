@@ -1,0 +1,18 @@
+{
+  "session_id": "sess_c4041c7f0305",
+  "filename": "WhatsApp Video 2026-10-08 at 14.30.29.mp4",
+  "status": "completed",
+  "video": {
+    "width": 848,
+    "height": 478,
+    "fps": 29.32041787025172,
+    "frame_count": 225,
+    "duration_seconds": 7.67
+  },
+  "frames": {
+    "extracted": 23,
+    "usable": 23,
+    "sample_interval": 10,
+    "frames_directory": "data/frames/sess_c4041c7f0305"
+  }
+}

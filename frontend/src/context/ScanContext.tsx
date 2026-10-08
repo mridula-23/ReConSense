@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState } from 'react';
+import type { VideoProcessingResult } from '../services/api';
 
 export type ViewportMode = 'shaded' | 'wireframe' | 'pointcloud' | 'coverage';
 
@@ -42,6 +43,7 @@ export interface ScanState {
   inputSource: 'phone' | 'upload';
   uploadedVideoName: string | null;
   uploadedVideoSize: number | null;
+  sessionId: string | null;
   phoneConnected: boolean;
   captureStatus: 'idle' | 'ready' | 'scanning' | 'finished';
   isCapturing: boolean;
@@ -80,6 +82,12 @@ interface ScanContextType {
   uploadedVideoFile: File | null;
   uploadedVideoUrl: string | null;
   setUploadedVideo: (file: File | null) => void;
+  processingResult: VideoProcessingResult | null;
+  setProcessingResult: React.Dispatch<React.SetStateAction<VideoProcessingResult | null>>;
+  processingStage: 'idle' | 'uploading' | 'processing' | 'extracting' | 'completed' | 'failed';
+  setProcessingStage: React.Dispatch<React.SetStateAction<'idle' | 'uploading' | 'processing' | 'extracting' | 'completed' | 'failed'>>;
+  processingError: string | null;
+  setProcessingError: React.Dispatch<React.SetStateAction<string | null>>;
   startNewScan: (name?: string, roomType?: string) => void;
   startUploadScan: (file: File, name?: string) => void;
   connectPhone: () => void;
@@ -98,6 +106,7 @@ const defaultScanState: ScanState = {
   inputSource: 'phone',
   uploadedVideoName: null,
   uploadedVideoSize: null,
+  sessionId: null,
   phoneConnected: false,
   captureStatus: 'ready',
   isCapturing: false,
@@ -142,6 +151,9 @@ export const ScanProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const [uploadedVideoFile, setUploadedVideoFile] = useState<File | null>(null);
   const [uploadedVideoUrl, setUploadedVideoUrl] = useState<string | null>(null);
+  const [processingResult, setProcessingResult] = useState<VideoProcessingResult | null>(null);
+  const [processingStage, setProcessingStage] = useState<'idle' | 'uploading' | 'processing' | 'extracting' | 'completed' | 'failed'>('idle');
+  const [processingError, setProcessingError] = useState<string | null>(null);
 
   const setUploadedVideo = (file: File | null) => {
     if (uploadedVideoUrl) {
@@ -174,6 +186,9 @@ export const ScanProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const url = URL.createObjectURL(file);
     setUploadedVideoFile(file);
     setUploadedVideoUrl(url);
+    setProcessingResult(null);
+    setProcessingStage('idle');
+    setProcessingError(null);
     const scanName = name || file.name.replace(/\.[^/.]+$/, '') || 'Uploaded Video Scan';
     setScanState({
       ...defaultScanState,
@@ -203,6 +218,9 @@ export const ScanProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUploadedVideoUrl(null);
       setUploadedVideoFile(null);
     }
+    setProcessingResult(null);
+    setProcessingStage('idle');
+    setProcessingError(null);
     const scanName = name || 'Room Scan';
     const room = roomType || 'Indoor Room';
     setScanState({
@@ -295,6 +313,9 @@ export const ScanProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUploadedVideoUrl(null);
       setUploadedVideoFile(null);
     }
+    setProcessingResult(null);
+    setProcessingStage('idle');
+    setProcessingError(null);
     if (scanState.sceneReady && activeSession) {
       setPreviousScans((prev) => [
         {
@@ -340,6 +361,12 @@ export const ScanProvider: React.FC<{ children: React.ReactNode }> = ({ children
         uploadedVideoFile,
         uploadedVideoUrl,
         setUploadedVideo,
+        processingResult,
+        setProcessingResult,
+        processingStage,
+        setProcessingStage,
+        processingError,
+        setProcessingError,
         startNewScan,
         startUploadScan,
         connectPhone,

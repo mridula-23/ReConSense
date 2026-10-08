@@ -1,0 +1,18 @@
+{
+  "session_id": "sess_530aba26b48e",
+  "filename": "test_room.mp4",
+  "status": "completed",
+  "video": {
+    "width": 640,
+    "height": 480,
+    "fps": 10.0,
+    "frame_count": 30,
+    "duration_seconds": 3.0
+  },
+  "frames": {
+    "extracted": 6,
+    "usable": 6,
+    "sample_interval": 5,
+    "frames_directory": "data/frames/sess_530aba26b48e"
+  }
+}

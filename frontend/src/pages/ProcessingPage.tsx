@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Loader2,
@@ -8,14 +8,88 @@ import {
   ArrowLeft,
   Smartphone,
   FileVideo,
+  AlertCircle,
+  RotateCcw,
 } from 'lucide-react';
 import { useScanContext } from '../context/ScanContext';
+import { processVideo } from '../services/api';
 
 export const ProcessingPage: React.FC = () => {
   const navigate = useNavigate();
-  const { scanState } = useScanContext();
+  const {
+    scanState,
+    setScanState,
+    uploadedVideoFile,
+    processingResult,
+    setProcessingResult,
+    processingStage,
+    setProcessingStage,
+    processingError,
+    setProcessingError,
+    setActiveSession,
+  } = useScanContext();
 
   const isUpload = scanState.inputSource === 'upload';
+
+  // Automatically trigger real backend processing for uploaded video
+  useEffect(() => {
+    if (!isUpload || !uploadedVideoFile || processingResult || processingStage === 'completed') {
+      return;
+    }
+
+    let isMounted = true;
+
+    const runBackendProcessing = async () => {
+      try {
+        setProcessingError(null);
+        setProcessingStage('uploading');
+
+        // Step 1: Uploading & Video Prep
+        await new Promise((r) => setTimeout(r, 200));
+        if (!isMounted) return;
+        setProcessingStage('processing');
+
+        // Step 2: Send real multipart request to backend API
+        const result = await processVideo(uploadedVideoFile, 10);
+        if (!isMounted) return;
+
+        // Step 3: Frames Extracted
+        setProcessingStage('extracting');
+        await new Promise((r) => setTimeout(r, 300));
+        if (!isMounted) return;
+
+        // Step 4: Completed
+        setProcessingResult(result);
+        setProcessingStage('completed');
+        setScanState((prev) => ({
+          ...prev,
+          sessionId: result.session_id,
+          uploadedVideoName: result.filename,
+          isProcessing: false,
+        }));
+        setActiveSession((prev) =>
+          prev
+            ? {
+                ...prev,
+                id: result.session_id,
+                status: 'ready',
+              }
+            : null
+        );
+      } catch (err: unknown) {
+        if (!isMounted) return;
+        const message = err instanceof Error ? err.message : 'Video processing failed';
+        setProcessingError(message);
+        setProcessingStage('failed');
+      }
+    };
+
+    runBackendProcessing();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isUpload, uploadedVideoFile]);
 
   const handleContinue = () => {
     navigate('/scene');
@@ -26,6 +100,14 @@ export const ProcessingPage: React.FC = () => {
       navigate('/upload');
     } else {
       navigate('/capture');
+    }
+  };
+
+  const handleRetry = () => {
+    if (uploadedVideoFile) {
+      setProcessingResult(null);
+      setProcessingError(null);
+      setProcessingStage('idle');
     }
   };
 
@@ -44,7 +126,7 @@ export const ProcessingPage: React.FC = () => {
       <div
         style={{
           width: '100%',
-          maxWidth: '580px',
+          maxWidth: '600px',
           background: 'var(--bg-surface)',
           border: '1px solid var(--border-subtle)',
           borderRadius: 'var(--radius-lg)',
@@ -114,14 +196,136 @@ export const ProcessingPage: React.FC = () => {
               fontSize: '11px',
               padding: '4px 8px',
               borderRadius: 'var(--radius-sm)',
-              background: 'rgba(56, 189, 248, 0.1)',
-              color: 'var(--accent-cyan)',
-              border: '1px solid rgba(56, 189, 248, 0.2)',
+              background:
+                processingStage === 'completed'
+                  ? 'rgba(16, 185, 129, 0.15)'
+                  : processingStage === 'failed'
+                  ? 'rgba(244, 63, 94, 0.15)'
+                  : 'rgba(56, 189, 248, 0.1)',
+              color:
+                processingStage === 'completed'
+                  ? 'var(--accent-emerald)'
+                  : processingStage === 'failed'
+                  ? 'var(--accent-rose)'
+                  : 'var(--accent-cyan)',
+              border: `1px solid ${
+                processingStage === 'completed'
+                  ? 'rgba(16, 185, 129, 0.3)'
+                  : processingStage === 'failed'
+                  ? 'rgba(244, 63, 94, 0.3)'
+                  : 'rgba(56, 189, 248, 0.2)'
+              }`,
             }}
           >
-            {isUpload && scanState.uploadedVideoName ? 'Video ready' : 'Ready for processing'}
+            {isUpload
+              ? processingStage === 'completed'
+                ? 'Video is ready for 3D reconstruction'
+                : processingStage === 'uploading'
+                ? 'Uploading video...'
+                : processingStage === 'processing'
+                ? 'Preparing your room video'
+                : processingStage === 'extracting'
+                ? 'Extracting useful frames'
+                : processingStage === 'failed'
+                ? 'Processing failed'
+                : 'Preparing video'
+              : 'Phone capture ready'}
           </div>
         </div>
+
+        {/* Error state if failed */}
+        {processingError && (
+          <div
+            style={{
+              background: 'rgba(244, 63, 94, 0.1)',
+              border: '1px solid rgba(244, 63, 94, 0.3)',
+              borderRadius: 'var(--radius-sm)',
+              padding: '12px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#fecdd3', fontSize: '12.5px' }}>
+              <AlertCircle size={16} style={{ color: 'var(--accent-rose)', flexShrink: 0 }} />
+              <span>{processingError}</span>
+            </div>
+            <button
+              onClick={handleRetry}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '4px 8px',
+                borderRadius: 'var(--radius-sm)',
+                background: 'rgba(244, 63, 94, 0.2)',
+                border: '1px solid rgba(244, 63, 94, 0.4)',
+                color: '#fff',
+                fontSize: '11.5px',
+                cursor: 'pointer',
+              }}
+            >
+              <RotateCcw size={12} />
+              <span>Retry</span>
+            </button>
+          </div>
+        )}
+
+        {/* Real Backend Frame Extraction Summary when completed */}
+        {processingResult && (
+          <div
+            style={{
+              background: 'rgba(16, 185, 129, 0.05)',
+              border: '1px solid rgba(16, 185, 129, 0.25)',
+              borderRadius: 'var(--radius-md)',
+              padding: '16px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-emerald)', fontSize: '13px', fontWeight: 600 }}>
+              <CheckCircle2 size={16} />
+              <span>Video dataset prepared successfully</span>
+            </div>
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: '8px',
+                fontSize: '12px',
+                paddingTop: '4px',
+              }}
+            >
+              <div style={{ background: 'var(--bg-surface-elevated)', padding: '8px 10px', borderRadius: 'var(--radius-sm)' }}>
+                <div style={{ color: 'var(--text-muted)', fontSize: '10.5px' }}>Total Video Frames</div>
+                <div style={{ color: 'var(--text-primary)', fontWeight: 600, marginTop: '2px' }}>
+                  {processingResult.video.frame_count} frames ({processingResult.video.duration_seconds}s)
+                </div>
+              </div>
+
+              <div style={{ background: 'var(--bg-surface-elevated)', padding: '8px 10px', borderRadius: 'var(--radius-sm)' }}>
+                <div style={{ color: 'var(--text-muted)', fontSize: '10.5px' }}>Extracted Frames</div>
+                <div style={{ color: 'var(--accent-cyan)', fontWeight: 600, marginTop: '2px' }}>
+                  {processingResult.frames.extracted} sampled
+                </div>
+              </div>
+
+              <div style={{ background: 'var(--bg-surface-elevated)', padding: '8px 10px', borderRadius: 'var(--radius-sm)' }}>
+                <div style={{ color: 'var(--text-muted)', fontSize: '10.5px' }}>Usable for 3D</div>
+                <div style={{ color: 'var(--accent-emerald)', fontWeight: 600, marginTop: '2px' }}>
+                  {processingResult.frames.usable} sharp frames
+                </div>
+              </div>
+            </div>
+
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+              Session ID: {processingResult.session_id} • Resolution: {processingResult.video.width}×{processingResult.video.height}
+            </div>
+          </div>
+        )}
 
         {/* Processing Sequence List */}
         <div
@@ -135,54 +339,55 @@ export const ProcessingPage: React.FC = () => {
             gap: '14px',
           }}
         >
-          {/* Step 1 */}
+          {/* Step 1: Preparing video */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <CheckCircle2 size={18} style={{ color: 'var(--accent-emerald)', flexShrink: 0 }} />
+            {processingStage === 'completed' || processingStage === 'extracting' || processingStage === 'processing' ? (
+              <CheckCircle2 size={18} style={{ color: 'var(--accent-emerald)', flexShrink: 0 }} />
+            ) : processingStage === 'uploading' ? (
+              <Loader2 size={18} className="spin-animation" style={{ color: 'var(--accent-cyan)', flexShrink: 0 }} />
+            ) : (
+              <Circle size={18} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+            )}
             <span style={{ fontSize: '13.5px', color: 'var(--text-primary)', fontWeight: 500 }}>
               Preparing video
             </span>
           </div>
 
-          {/* Step 2 */}
+          {/* Step 2: Extracting useful frames */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <Loader2 size={18} className="spin-animation" style={{ color: 'var(--accent-cyan)', flexShrink: 0 }} />
-            <span style={{ fontSize: '13.5px', color: 'var(--text-primary)', fontWeight: 600 }}>
-              Building the scene
+            {processingStage === 'completed' ? (
+              <CheckCircle2 size={18} style={{ color: 'var(--accent-emerald)', flexShrink: 0 }} />
+            ) : processingStage === 'processing' || processingStage === 'extracting' ? (
+              <Loader2 size={18} className="spin-animation" style={{ color: 'var(--accent-cyan)', flexShrink: 0 }} />
+            ) : (
+              <Circle size={18} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+            )}
+            <span
+              style={{
+                fontSize: '13.5px',
+                color: processingStage === 'completed' || processingStage === 'processing' || processingStage === 'extracting' ? 'var(--text-primary)' : 'var(--text-muted)',
+                fontWeight: processingStage === 'processing' || processingStage === 'extracting' ? 600 : 500,
+              }}
+            >
+              Extracting useful frames & blur filtering
             </span>
           </div>
 
-          {/* Step 3 */}
+          {/* Step 3: Checking room coverage */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <Circle size={18} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
             <span style={{ fontSize: '13.5px', color: 'var(--text-muted)' }}>
-              Checking room coverage
+              Checking room coverage (Upcoming step)
             </span>
           </div>
 
-          {/* Step 4 */}
+          {/* Step 4: Detecting moving objects */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <Circle size={18} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
             <span style={{ fontSize: '13.5px', color: 'var(--text-muted)' }}>
-              Detecting moving objects
+              Detecting moving objects (Upcoming step)
             </span>
           </div>
-        </div>
-
-        {/* Honest System Notice */}
-        <div
-          style={{
-            background: 'rgba(255, 255, 255, 0.02)',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-sm)',
-            padding: '12px 14px',
-            fontSize: '12px',
-            color: 'var(--text-muted)',
-            textAlign: 'center',
-          }}
-        >
-          {isUpload
-            ? 'Processing will begin when the video processing service is connected.'
-            : 'Processing services are not connected yet.'}
         </div>
 
         {/* Actions */}
@@ -200,9 +405,10 @@ export const ProcessingPage: React.FC = () => {
               fontWeight: 600,
               fontSize: '13.5px',
               boxShadow: '0 0 14px rgba(56, 189, 248, 0.3)',
+              cursor: 'pointer',
             }}
           >
-            <span>Continue to Scene</span>
+            <span>Continue to 3D Reconstruction</span>
             <ArrowRight size={15} strokeWidth={2.5} />
           </button>
         </div>
