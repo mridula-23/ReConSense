@@ -6,13 +6,27 @@ import {
   Circle,
   ArrowRight,
   ArrowLeft,
+  Smartphone,
+  FileVideo,
 } from 'lucide-react';
+import { useScanContext } from '../context/ScanContext';
 
 export const ProcessingPage: React.FC = () => {
   const navigate = useNavigate();
+  const { scanState } = useScanContext();
+
+  const isUpload = scanState.inputSource === 'upload';
 
   const handleContinue = () => {
     navigate('/scene');
+  };
+
+  const handleBack = () => {
+    if (isUpload) {
+      navigate('/upload');
+    } else {
+      navigate('/capture');
+    }
   };
 
   return (
@@ -44,7 +58,7 @@ export const ProcessingPage: React.FC = () => {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '16px' }}>
           <div>
             <div style={{ fontSize: '11px', color: 'var(--accent-cyan)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              Step 4 of 6
+              Reconstruction Pipeline
             </div>
             <h2 style={{ fontSize: '20px', fontWeight: 600, color: 'var(--text-primary)', marginTop: '2px' }}>
               Building Your 3D Scene
@@ -52,7 +66,7 @@ export const ProcessingPage: React.FC = () => {
           </div>
 
           <button
-            onClick={() => navigate('/capture')}
+            onClick={handleBack}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -64,6 +78,49 @@ export const ProcessingPage: React.FC = () => {
             <ArrowLeft size={14} />
             <span>Back</span>
           </button>
+        </div>
+
+        {/* Input Source & Status Badge */}
+        <div
+          style={{
+            background: 'var(--bg-surface-elevated)',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: 'var(--radius-sm)',
+            padding: '12px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {isUpload ? (
+              <FileVideo size={18} style={{ color: 'var(--accent-cyan)' }} />
+            ) : (
+              <Smartphone size={18} style={{ color: 'var(--accent-emerald)' }} />
+            )}
+            <div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                Source
+              </div>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                {isUpload ? 'Uploaded Video' : 'Phone Capture'}
+              </div>
+            </div>
+          </div>
+
+          <div
+            className="font-mono"
+            style={{
+              fontSize: '11px',
+              padding: '4px 8px',
+              borderRadius: 'var(--radius-sm)',
+              background: 'rgba(56, 189, 248, 0.1)',
+              color: 'var(--accent-cyan)',
+              border: '1px solid rgba(56, 189, 248, 0.2)',
+            }}
+          >
+            {isUpload && scanState.uploadedVideoName ? 'Video ready' : 'Ready for processing'}
+          </div>
         </div>
 
         {/* Processing Sequence List */}
@@ -123,7 +180,9 @@ export const ProcessingPage: React.FC = () => {
             textAlign: 'center',
           }}
         >
-          Processing services are not connected yet.
+          {isUpload
+            ? 'Processing will begin when the video processing service is connected.'
+            : 'Processing services are not connected yet.'}
         </div>
 
         {/* Actions */}

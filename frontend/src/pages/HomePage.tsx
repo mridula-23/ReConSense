@@ -71,25 +71,87 @@ export const HomePage: React.FC = () => {
             </p>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '10px' }}>
-            <button
+          {/* Start Options */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, 1fr)',
+              gap: '14px',
+              width: '100%',
+              maxWidth: '560px',
+              marginTop: '12px',
+            }}
+          >
+            {/* Primary: Scan with Phone */}
+            <div
               onClick={handleStartScan}
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '11px 24px',
+                background: 'var(--bg-surface)',
+                border: '1px solid rgba(56, 189, 248, 0.4)',
                 borderRadius: 'var(--radius-md)',
-                backgroundColor: 'var(--accent-cyan)',
-                color: '#030712',
-                fontWeight: 600,
-                fontSize: '14px',
-                boxShadow: '0 0 16px rgba(56, 189, 248, 0.35)',
+                padding: '18px 16px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                textAlign: 'left',
+                gap: '10px',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                boxShadow: '0 0 16px rgba(56, 189, 248, 0.12)',
               }}
             >
-              <Plus size={16} strokeWidth={2.5} />
-              <span>Start New Scan</span>
-            </button>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  color: '#38bdf8',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                }}
+              >
+                <Camera size={18} />
+                <span>Scan with Phone</span>
+              </div>
+              <p style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.4, margin: 0 }}>
+                Capture the room using your phone.
+              </p>
+            </div>
+
+            {/* Secondary: Upload Video */}
+            <div
+              onClick={() => navigate('/upload')}
+              style={{
+                background: 'var(--bg-surface)',
+                border: '1px solid var(--border-default)',
+                borderRadius: 'var(--radius-md)',
+                padding: '18px 16px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                textAlign: 'left',
+                gap: '10px',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  color: 'var(--text-primary)',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                }}
+              >
+                <Plus size={18} />
+                <span>Upload Video</span>
+              </div>
+              <p style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.4, margin: 0 }}>
+                Use a room video already saved on your computer.
+              </p>
+            </div>
           </div>
         </div>
 

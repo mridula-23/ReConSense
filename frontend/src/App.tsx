@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ScanProvider } from './context/ScanContext';
 import { AppShell } from './layouts/AppShell';
 import { HomePage } from './pages/HomePage';
+import { UploadVideoPage } from './pages/UploadVideoPage';
 import { NewScanPage } from './pages/NewScanPage';
 import { ConnectPhonePage } from './pages/ConnectPhonePage';
 import { CapturePage } from './pages/CapturePage';
@@ -21,6 +22,7 @@ export function App() {
         <Routes>
           <Route element={<AppShell />}>
             <Route path="/" element={<HomePage />} />
+            <Route path="/upload" element={<UploadVideoPage />} />
             <Route path="/new-scan" element={<NewScanPage />} />
             <Route path="/connect" element={<ConnectPhonePage />} />
             <Route path="/capture" element={<CapturePage />} />

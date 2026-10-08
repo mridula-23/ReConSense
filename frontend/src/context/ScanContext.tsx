@@ -39,6 +39,9 @@ export interface ScanSession {
 export interface ScanState {
   scanName: string;
   roomType: string;
+  inputSource: 'phone' | 'upload';
+  uploadedVideoName: string | null;
+  uploadedVideoSize: number | null;
   phoneConnected: boolean;
   captureStatus: 'idle' | 'ready' | 'scanning' | 'finished';
   isCapturing: boolean;
@@ -74,7 +77,11 @@ interface ScanContextType {
   isDemoSampleLoaded: boolean;
   currentScreen?: string;
   setCurrentScreen?: (screen: string) => void;
+  uploadedVideoFile: File | null;
+  uploadedVideoUrl: string | null;
+  setUploadedVideo: (file: File | null) => void;
   startNewScan: (name?: string, roomType?: string) => void;
+  startUploadScan: (file: File, name?: string) => void;
   connectPhone: () => void;
   startCapture: () => void;
   finishCapture: () => void;
@@ -88,6 +95,9 @@ interface ScanContextType {
 const defaultScanState: ScanState = {
   scanName: 'Room Scan 01',
   roomType: 'Living Room',
+  inputSource: 'phone',
+  uploadedVideoName: null,
+  uploadedVideoSize: null,
   phoneConnected: false,
   captureStatus: 'ready',
   isCapturing: false,
@@ -130,11 +140,74 @@ export const ScanProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isDemoSampleLoaded, setIsDemoSampleLoaded] = useState<boolean>(false);
   const [currentScreen, setCurrentScreen] = useState<string>('home');
 
+  const [uploadedVideoFile, setUploadedVideoFile] = useState<File | null>(null);
+  const [uploadedVideoUrl, setUploadedVideoUrl] = useState<string | null>(null);
+
+  const setUploadedVideo = (file: File | null) => {
+    if (uploadedVideoUrl) {
+      URL.revokeObjectURL(uploadedVideoUrl);
+    }
+    setUploadedVideoFile(file);
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setUploadedVideoUrl(url);
+      setScanState((prev) => ({
+        ...prev,
+        inputSource: 'upload',
+        uploadedVideoName: file.name,
+        uploadedVideoSize: file.size,
+      }));
+    } else {
+      setUploadedVideoUrl(null);
+      setScanState((prev) => ({
+        ...prev,
+        uploadedVideoName: null,
+        uploadedVideoSize: null,
+      }));
+    }
+  };
+
+  const startUploadScan = (file: File, name?: string) => {
+    if (uploadedVideoUrl) {
+      URL.revokeObjectURL(uploadedVideoUrl);
+    }
+    const url = URL.createObjectURL(file);
+    setUploadedVideoFile(file);
+    setUploadedVideoUrl(url);
+    const scanName = name || file.name.replace(/\.[^/.]+$/, '') || 'Uploaded Video Scan';
+    setScanState({
+      ...defaultScanState,
+      scanName,
+      inputSource: 'upload',
+      uploadedVideoName: file.name,
+      uploadedVideoSize: file.size,
+      captureFinished: true,
+      captureStatus: 'finished',
+    });
+    setActiveSession({
+      id: `SCAN-${Date.now().toString().slice(-4)}`,
+      name: scanName,
+      roomType: 'Indoor Room',
+      status: 'idle',
+      createdAt: new Date().toLocaleDateString(),
+    });
+    setIsDemoSampleLoaded(false);
+    setRoomCoverage(null);
+    setMovingObjects([]);
+    setGuidanceTips([]);
+  };
+
   const startNewScan = (name?: string, roomType?: string) => {
+    if (uploadedVideoUrl) {
+      URL.revokeObjectURL(uploadedVideoUrl);
+      setUploadedVideoUrl(null);
+      setUploadedVideoFile(null);
+    }
     const scanName = name || 'Room Scan';
     const room = roomType || 'Indoor Room';
     setScanState({
       ...defaultScanState,
+      inputSource: 'phone',
       scanName,
       roomType: room,
     });
@@ -217,6 +290,11 @@ export const ScanProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const resetAll = () => {
+    if (uploadedVideoUrl) {
+      URL.revokeObjectURL(uploadedVideoUrl);
+      setUploadedVideoUrl(null);
+      setUploadedVideoFile(null);
+    }
     if (scanState.sceneReady && activeSession) {
       setPreviousScans((prev) => [
         {
@@ -259,7 +337,11 @@ export const ScanProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isDemoSampleLoaded,
         currentScreen,
         setCurrentScreen,
+        uploadedVideoFile,
+        uploadedVideoUrl,
+        setUploadedVideo,
         startNewScan,
+        startUploadScan,
         connectPhone,
         startCapture,
         finishCapture,
