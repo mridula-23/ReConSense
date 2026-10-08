@@ -2,53 +2,23 @@ import React from 'react';
 import { Header } from '../components/Header';
 import { Sidebar } from '../components/Sidebar';
 import { ActionBar } from '../components/ActionBar';
-import type {
-  SessionInfo,
-  SystemHardwareMetrics,
-  MobileDeviceConnection,
-  ViewportMode,
-  GuidanceCue,
-} from '../types/dashboard';
+import { useScanContext } from '../context/ScanContext';
 
 interface DashboardLayoutProps {
-  sessionInfo: SessionInfo;
-  hardwareMetrics: SystemHardwareMetrics;
-  deviceConnection: MobileDeviceConnection;
-  isStreaming: boolean;
-  onToggleStream: () => void;
-  activeMode: ViewportMode;
-  onSelectMode: (mode: ViewportMode) => void;
-  activeSection: string;
-  onSelectSection: (section: string) => void;
   sidebarCollapsed: boolean;
   onToggleSidebar: () => void;
-  onRunSparseSfM: () => void;
-  onRunDenseFusion: () => void;
-  onRunAIInpainting: () => void;
-  onExportModel: (format: 'ply' | 'glb' | 'obj') => void;
-  guidanceCue?: GuidanceCue;
+  onExportModel: (format: 'ply' | 'glb') => void;
   children: React.ReactNode;
 }
 
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
-  sessionInfo,
-  hardwareMetrics,
-  deviceConnection,
-  isStreaming,
-  onToggleStream,
-  activeMode,
-  onSelectMode,
-  activeSection,
-  onSelectSection,
   sidebarCollapsed,
   onToggleSidebar,
-  onRunSparseSfM,
-  onRunDenseFusion,
-  onRunAIInpainting,
   onExportModel,
-  guidanceCue,
   children,
 }) => {
+  const { viewportMode, setViewportMode } = useScanContext();
+
   return (
     <div
       style={{
@@ -61,23 +31,15 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       }}
     >
       {/* Top Telemetry Header */}
-      <Header
-        sessionInfo={sessionInfo}
-        hardwareMetrics={hardwareMetrics}
-        deviceConnection={deviceConnection}
-        isStreaming={isStreaming}
-        onToggleStream={onToggleStream}
-      />
+      <Header />
 
       {/* Main Workstation Workspace */}
       <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
         <Sidebar
-          activeMode={activeMode}
-          onSelectMode={onSelectMode}
+          activeMode={viewportMode}
+          onSelectMode={setViewportMode}
           collapsed={sidebarCollapsed}
           onToggleCollapse={onToggleSidebar}
-          activeViewSection={activeSection}
-          onSelectSection={onSelectSection}
         />
 
         <main
@@ -97,16 +59,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       </div>
 
       {/* Bottom Command / Guidance Bar */}
-      <ActionBar
-        isStreaming={isStreaming}
-        onToggleStream={onToggleStream}
-        onRunSparseSfM={onRunSparseSfM}
-        onRunDenseFusion={onRunDenseFusion}
-        onRunAIInpainting={onRunAIInpainting}
-        onExportModel={onExportModel}
-        activeMode={activeMode}
-        guidanceCue={guidanceCue}
-      />
+      <ActionBar onExportModel={onExportModel} />
     </div>
   );
 };

@@ -15,8 +15,6 @@ interface SidebarProps {
   onSelectMode: (mode: ViewportMode) => void;
   collapsed: boolean;
   onToggleCollapse: () => void;
-  activeViewSection?: string;
-  onSelectSection?: (section: string) => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -24,40 +22,44 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectMode,
   collapsed,
   onToggleCollapse,
-  onSelectSection,
 }) => {
   const navItems = [
     {
       id: 'point_cloud',
-      label: 'Sparse SfM',
+      label: 'Camera Points',
+      sublabel: 'Sparse Points',
       icon: Box,
       mode: 'point_cloud' as ViewportMode,
       shortcut: '1',
     },
     {
       id: 'dense_mesh',
-      label: 'Dense TSDF',
+      label: '3D Room Mesh',
+      sublabel: 'Surface Mesh',
       icon: Layers,
       mode: 'dense_mesh' as ViewportMode,
       shortcut: '2',
     },
     {
       id: 'coverage',
-      label: 'Coverage Map',
+      label: 'Room Coverage',
+      sublabel: 'Seen vs Unseen',
       icon: PieChart,
       mode: 'coverage_heatmap' as ViewportMode,
       shortcut: '3',
     },
     {
       id: 'dynamic_objects',
-      label: 'Dynamic Filter',
+      label: 'Moving Objects',
+      sublabel: 'Filtered Items',
       icon: UserX,
       mode: 'dynamic_filter' as ViewportMode,
       shortcut: '4',
     },
     {
       id: 'ai_completed',
-      label: 'AI Inpainting',
+      label: 'Filled Areas',
+      sublabel: 'AI Completed',
       icon: Sparkles,
       mode: 'ai_completed' as ViewportMode,
       shortcut: '5',
@@ -67,8 +69,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <aside
       style={{
-        width: collapsed ? '60px' : '190px',
-        minWidth: collapsed ? '60px' : '190px',
+        width: collapsed ? '58px' : '196px',
+        minWidth: collapsed ? '58px' : '196px',
         backgroundColor: 'var(--bg-surface)',
         borderRight: '1px solid var(--border-subtle)',
         display: 'flex',
@@ -79,8 +81,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         zIndex: 40,
       }}
     >
-      {/* Top Navigation Sections */}
-      <div style={{ display: 'flex', flexDirection: 'column', padding: '10px 8px', gap: '4px' }}>
+      {/* Viewport View Modes */}
+      <div style={{ display: 'flex', flexDirection: 'column', padding: '10px 6px', gap: '4px' }}>
         {!collapsed && (
           <div
             style={{
@@ -92,7 +94,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               letterSpacing: '0.08em',
             }}
           >
-            Reconstruction Modes
+            Scene Views
           </div>
         )}
 
@@ -103,10 +105,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           return (
             <button
               key={item.id}
-              onClick={() => {
-                onSelectSection?.(item.id);
-                onSelectMode(item.mode);
-              }}
+              onClick={() => onSelectMode(item.mode)}
               title={collapsed ? `${item.label} (${item.shortcut})` : undefined}
               style={{
                 display: 'flex',
@@ -139,9 +138,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <Icon size={16} style={{ color: isActive ? 'var(--accent-cyan)' : 'inherit', flexShrink: 0 }} />
 
               {!collapsed && (
-                <span style={{ flex: 1, textAlign: 'left', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {item.label}
-                </span>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', flex: 1, minWidth: 0 }}>
+                  <span style={{ fontSize: '12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {item.label}
+                  </span>
+                  <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                    {item.sublabel}
+                  </span>
+                </div>
               )}
 
               {!collapsed && item.shortcut && (
@@ -163,7 +167,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         })}
       </div>
 
-      {/* Bottom Collapse Button */}
+      {/* Bottom Collapse Toggle */}
       <div
         style={{
           borderTop: '1px solid var(--border-subtle)',
@@ -193,7 +197,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           }}
         >
           {collapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
-          {!collapsed && <span style={{ fontSize: '11px' }}>Collapse View</span>}
+          {!collapsed && <span style={{ fontSize: '11px' }}>Collapse Sidebar</span>}
         </button>
       </div>
     </aside>

@@ -2,198 +2,160 @@ import React from 'react';
 import {
   Layers,
   Smartphone,
-  Cpu,
-  Radio,
-  Sliders,
+  Plus,
+  Home,
+  Sparkles,
 } from 'lucide-react';
-import type { SystemHardwareMetrics, SessionInfo, MobileDeviceConnection } from '../types/dashboard';
+import { useScanContext } from '../context/ScanContext';
 
-interface HeaderProps {
-  sessionInfo: SessionInfo;
-  hardwareMetrics: SystemHardwareMetrics;
-  deviceConnection: MobileDeviceConnection;
-  isStreaming: boolean;
-  onToggleStream?: () => void;
-  onOpenSettings?: () => void;
-}
+export const Header: React.FC = () => {
+  const { activeSession, phoneConnection, isDemoSampleLoaded, resetToHome, startNewScan } = useScanContext();
 
-export const Header: React.FC<HeaderProps> = ({
-  sessionInfo,
-  hardwareMetrics,
-  deviceConnection,
-  isStreaming,
-  onToggleStream,
-  onOpenSettings,
-}) => {
   return (
     <header
       style={{
-        height: '56px',
-        minHeight: '56px',
+        height: '54px',
+        minHeight: '54px',
         backgroundColor: 'var(--bg-surface)',
         borderBottom: '1px solid var(--border-subtle)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '0 20px',
-        gap: '20px',
+        padding: '0 18px',
+        gap: '16px',
         zIndex: 50,
       }}
     >
-      {/* Brand & Subtitle */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <div
+      {/* Brand & Scan Title */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+        <button
+          onClick={resetToHome}
+          title="Return to Home"
           style={{
-            width: '28px',
-            height: '28px',
-            borderRadius: 'var(--radius-sm)',
-            background: 'linear-gradient(135deg, #0284c7, #38bdf8)',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            color: '#fff',
-            boxShadow: '0 0 10px rgba(56, 189, 248, 0.3)',
+            gap: '8px',
           }}
         >
-          <Layers size={16} strokeWidth={2.4} />
-        </div>
+          <div
+            style={{
+              width: '26px',
+              height: '26px',
+              borderRadius: 'var(--radius-sm)',
+              background: 'linear-gradient(135deg, #0284c7, #38bdf8)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#fff',
+            }}
+          >
+            <Layers size={15} strokeWidth={2.4} />
+          </div>
 
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span
-              style={{
-                fontSize: '15px',
-                fontWeight: 700,
-                letterSpacing: '-0.02em',
-                color: 'var(--text-primary)',
-              }}
-            >
-              ReConSense
-            </span>
+          <span
+            style={{
+              fontSize: '14.5px',
+              fontWeight: 700,
+              letterSpacing: '-0.02em',
+              color: 'var(--text-primary)',
+            }}
+          >
+            ReConSense
+          </span>
+        </button>
+
+        <div style={{ height: '16px', width: '1px', backgroundColor: 'var(--border-subtle)' }} />
+
+        {/* Current Active Scan Name */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
+            {activeSession ? activeSession.name : 'Workspace'}
+          </span>
+          {activeSession && (
             <span
               className="font-mono"
               style={{
                 fontSize: '10px',
+                color: 'var(--text-muted)',
+                background: 'var(--bg-surface-elevated)',
                 padding: '1px 6px',
                 borderRadius: '3px',
-                background: 'var(--accent-cyan-subtle)',
-                color: 'var(--accent-cyan)',
-                border: '1px solid rgba(56, 189, 248, 0.2)',
-                fontWeight: 600,
+                border: '1px solid var(--border-subtle)',
               }}
             >
-              WORKSTATION
+              {activeSession.roomType}
             </span>
-          </div>
-          <div
-            style={{
-              fontSize: '10.5px',
-              color: 'var(--text-muted)',
-              lineHeight: 1.1,
-            }}
-          >
-            Observation-aware 3D indoor scene reconstruction
-          </div>
+          )}
+
+          {isDemoSampleLoaded && (
+            <span className="badge badge-indigo" style={{ fontSize: '10px' }}>
+              <Sparkles size={11} />
+              Sample Demo Room
+            </span>
+          )}
         </div>
       </div>
 
-      {/* Center & Right Status Elements */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-        {/* Session ID Pill */}
+      {/* Right Controls: Phone Status & Navigation */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        {/* Phone Connection Badge */}
         <div
-          className="font-mono"
           style={{
-            fontSize: '11.5px',
-            color: 'var(--text-secondary)',
-            background: 'var(--bg-surface-elevated)',
-            padding: '4px 10px',
-            borderRadius: 'var(--radius-sm)',
-            border: '1px solid var(--border-subtle)',
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
-          }}
-        >
-          <span style={{ color: 'var(--text-muted)' }}>SESSION</span>
-          <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{sessionInfo.sessionId}</span>
-        </div>
-
-        {/* Mobile Pairing Status Pill */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '7px',
             background: 'var(--bg-surface-elevated)',
-            padding: '4px 10px',
+            padding: '4px 9px',
             borderRadius: 'var(--radius-sm)',
             border: '1px solid var(--border-subtle)',
-            fontSize: '11.5px',
+            fontSize: '11px',
             fontFamily: 'var(--font-mono)',
           }}
         >
-          <Smartphone size={13} style={{ color: 'var(--accent-cyan)' }} />
-          <span style={{ color: 'var(--text-secondary)' }}>{deviceConnection.deviceName.split(' ')[0]}</span>
-          <span className="pulse-dot" />
-          <span style={{ color: 'var(--accent-emerald)', fontWeight: 600 }}>SYNCED</span>
+          <Smartphone size={13} style={{ color: phoneConnection.status === 'connected' ? 'var(--accent-emerald)' : 'var(--text-muted)' }} />
+          {phoneConnection.status === 'connected' ? (
+            <span style={{ color: 'var(--accent-emerald)', fontWeight: 600 }}>Phone Connected</span>
+          ) : (
+            <span style={{ color: 'var(--text-muted)' }}>Phone: Not Connected</span>
+          )}
         </div>
 
-        {/* GPU Status Pill */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '7px',
-            background: 'var(--bg-surface-elevated)',
-            padding: '4px 10px',
-            borderRadius: 'var(--radius-sm)',
-            border: '1px solid var(--border-subtle)',
-            fontSize: '11.5px',
-            fontFamily: 'var(--font-mono)',
-          }}
-        >
-          <Cpu size={13} style={{ color: 'var(--accent-indigo)' }} />
-          <span style={{ color: 'var(--text-secondary)' }}>RTX 4090</span>
-          <span style={{ color: 'var(--accent-indigo)', fontWeight: 600 }}>{hardwareMetrics.gpuUsagePercent}%</span>
-        </div>
-
-        {/* Live Stream / Capture Trigger Button */}
+        {/* Quick New Scan button */}
         <button
-          onClick={onToggleStream}
+          onClick={() => startNewScan('New Room Scan', 'Living Room')}
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
-            padding: '6px 14px',
+            gap: '5px',
+            padding: '5px 11px',
             borderRadius: 'var(--radius-sm)',
-            background: isStreaming ? 'var(--accent-rose-subtle)' : 'var(--accent-emerald-subtle)',
-            border: `1px solid ${isStreaming ? 'rgba(244, 63, 94, 0.35)' : 'rgba(16, 185, 129, 0.35)'}`,
-            color: isStreaming ? '#fb7185' : '#34d399',
+            background: 'var(--bg-surface-elevated)',
+            border: '1px solid var(--border-subtle)',
+            color: 'var(--text-primary)',
             fontSize: '11.5px',
-            fontWeight: 600,
-            fontFamily: 'var(--font-mono)',
+            fontWeight: 500,
           }}
         >
-          <Radio size={13} />
-          <span>{isStreaming ? 'PAUSE INGEST' : 'STREAM LIVE'}</span>
+          <Plus size={13} />
+          <span>New Scan</span>
         </button>
 
-        {/* Settings Icon */}
+        {/* Home button */}
         <button
-          onClick={onOpenSettings}
-          title="System Settings & Presets"
+          onClick={resetToHome}
+          title="Return to Home"
           style={{
-            padding: '7px',
+            padding: '6px',
             borderRadius: 'var(--radius-sm)',
             background: 'var(--bg-surface-elevated)',
             border: '1px solid var(--border-subtle)',
-            color: 'var(--text-secondary)',
+            color: 'var(--text-muted)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <Sliders size={14} />
+          <Home size={14} />
         </button>
       </div>
     </header>

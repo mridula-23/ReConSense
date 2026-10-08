@@ -1,32 +1,23 @@
 import React from 'react';
 import {
-  Box,
-  Layers,
   Sparkles,
   Navigation,
   Download,
+  Play,
 } from 'lucide-react';
-import type { ViewportMode, GuidanceCue } from '../types/dashboard';
+import { useScanContext } from '../context/ScanContext';
 
 interface ActionBarProps {
-  isStreaming: boolean;
-  onToggleStream: () => void;
-  onRunSparseSfM: () => void;
-  onRunDenseFusion: () => void;
-  onRunAIInpainting: () => void;
-  onExportModel: (format: 'ply' | 'glb' | 'obj') => void;
-  activeMode: ViewportMode;
-  guidanceCue?: GuidanceCue;
+  onExportModel: (format: 'ply' | 'glb') => void;
 }
 
 export const ActionBar: React.FC<ActionBarProps> = ({
-  onRunSparseSfM,
-  onRunDenseFusion,
-  onRunAIInpainting,
   onExportModel,
-  activeMode,
-  guidanceCue,
 }) => {
+  const { guidanceTips, runReconstruction } = useScanContext();
+
+  const activeGuidance = guidanceTips.length > 0 ? guidanceTips[0].message : 'Scan the room by slowly panning your camera.';
+
   return (
     <footer
       style={{
@@ -42,8 +33,8 @@ export const ActionBar: React.FC<ActionBarProps> = ({
         zIndex: 30,
       }}
     >
-      {/* Left: Real-time Live Guidance Cue for Mobile Operator */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+      {/* Left: Active Guidance message */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
         <div
           style={{
             display: 'flex',
@@ -54,7 +45,7 @@ export const ActionBar: React.FC<ActionBarProps> = ({
             padding: '4px 10px',
             borderRadius: 'var(--radius-sm)',
             fontSize: '11px',
-            maxWidth: '460px',
+            maxWidth: '520px',
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -65,79 +56,57 @@ export const ActionBar: React.FC<ActionBarProps> = ({
             Guidance:
           </span>
           <span style={{ color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {guidanceCue ? guidanceCue.actionText : 'Scanning velocity optimal. Continue path sweep.'}
+            {activeGuidance}
           </span>
         </div>
       </div>
 
-      {/* Center: Primary Pipeline Execution Controls */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+      {/* Center: Primary Processing Actions */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <button
-          onClick={onRunSparseSfM}
+          onClick={runReconstruction}
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '5px',
-            padding: '5px 11px',
+            gap: '6px',
+            padding: '5px 12px',
             borderRadius: 'var(--radius-sm)',
-            background: activeMode === 'point_cloud' ? 'var(--bg-surface-active)' : 'var(--bg-surface-elevated)',
-            border: activeMode === 'point_cloud' ? '1px solid var(--accent-cyan)' : '1px solid var(--border-subtle)',
-            color: activeMode === 'point_cloud' ? 'var(--accent-cyan)' : 'var(--text-secondary)',
+            background: 'var(--bg-surface-elevated)',
+            border: '1px solid var(--border-default)',
+            color: 'var(--text-primary)',
             fontSize: '11.5px',
             fontWeight: 500,
-            fontFamily: 'var(--font-mono)',
           }}
         >
-          <Box size={13} />
-          <span>Sparse SfM</span>
+          <Play size={12} style={{ color: 'var(--accent-cyan)' }} />
+          <span>Reconstruct 3D Scene</span>
         </button>
 
         <button
-          onClick={onRunDenseFusion}
+          onClick={runReconstruction}
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '5px',
-            padding: '5px 11px',
+            gap: '6px',
+            padding: '5px 12px',
             borderRadius: 'var(--radius-sm)',
-            background: activeMode === 'dense_mesh' ? 'var(--bg-surface-active)' : 'var(--bg-surface-elevated)',
-            border: activeMode === 'dense_mesh' ? '1px solid var(--accent-emerald)' : '1px solid var(--border-subtle)',
-            color: activeMode === 'dense_mesh' ? 'var(--accent-emerald)' : 'var(--text-secondary)',
+            background: 'var(--bg-surface-elevated)',
+            border: '1px solid var(--border-default)',
+            color: 'var(--text-primary)',
             fontSize: '11.5px',
             fontWeight: 500,
-            fontFamily: 'var(--font-mono)',
           }}
         >
-          <Layers size={13} />
-          <span>Dense TSDF</span>
-        </button>
-
-        <button
-          onClick={onRunAIInpainting}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '5px',
-            padding: '5px 11px',
-            borderRadius: 'var(--radius-sm)',
-            background: activeMode === 'ai_completed' ? 'var(--bg-surface-active)' : 'var(--bg-surface-elevated)',
-            border: activeMode === 'ai_completed' ? '1px solid var(--accent-indigo)' : '1px solid var(--border-subtle)',
-            color: activeMode === 'ai_completed' ? 'var(--accent-indigo)' : 'var(--text-secondary)',
-            fontSize: '11.5px',
-            fontWeight: 500,
-            fontFamily: 'var(--font-mono)',
-          }}
-        >
-          <Sparkles size={13} />
-          <span>AI Inpainting</span>
+          <Sparkles size={12} style={{ color: 'var(--accent-indigo)' }} />
+          <span>Fill Missing Areas</span>
         </button>
       </div>
 
-      {/* Right: Export Format Options */}
+      {/* Right: Export Options */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
         <button
           onClick={() => onExportModel('ply')}
-          title="Export Point Cloud (.PLY)"
+          title="Export 3D Point Cloud (.PLY)"
           style={{
             padding: '4px 9px',
             borderRadius: 'var(--radius-sm)',
